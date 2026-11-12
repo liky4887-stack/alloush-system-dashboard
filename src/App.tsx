@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import Header from '@/components/Header';
 import TabBar from '@/components/TabBar';
@@ -20,6 +20,8 @@ export default function App() {
   const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) fetchProfile(session.user.id);
@@ -63,6 +65,15 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 text-center">
+        <h1 className="text-2xl font-bold text-red-500 mb-4">خطأ في الإعدادات</h1>
+        <p className="text-zinc-400">مفاتيح Supabase غير موجودة. يرجى إضافتها في إعدادات Netlify.</p>
+      </div>
+    );
+  }
+
   if (!session) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4">
@@ -80,13 +91,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-12">
-      <Header session={session} isHr={isHr} onSignOut={handleSignOut} />
+      <Header session={session} isHr={isHr} onSignOut={handleSignOut} onOpenAuth={() => setAuthOpen(true)} />
       <main className="max-w-5xl mx-auto px-4 mt-6">
         <TabBar active={activeTab} onChange={setActiveTab} isHr={isHr} />
-        {activeTab === 'overview' && isHr && <OverviewTab requests={requests} />}
-        {activeTab === 'crew-change' && <CrewChangeTab requests={requests} onRefresh={() => fetchData(profile.role, profile.rig)} isHr={isHr} userRig={profile.rig} />}
+        {activeTab === 'overview' && isHr && <OverviewTab requests={requests} employees={employees} />}
+        {activeTab === 'crew-change' && <CrewChangeTab requests={requests} employees={employees} onRefresh={() => fetchData(profile.role, profile.rig)} isHr={isHr} userRig={profile.rig} />}
         {activeTab === 'employees' && <EmployeesTab employees={employees} onRefresh={() => fetchData(profile.role, profile.rig)} isHr={isHr} userRig={profile.rig} />}
       </main>
+      {authOpen && <AuthPanel onClose={() => setAuthOpen(false)} />}
     </div>
   );
 }
