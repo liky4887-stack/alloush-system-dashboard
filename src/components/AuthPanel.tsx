@@ -29,7 +29,8 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
     });
 
     if (authError) {
-      setError('كلمة المرور غير صحيحة');
+      // Show the exact Supabase error message
+      setError(authError.message + ' (' + email + ')');
       setLoading(false);
     } else {
       onClose();
