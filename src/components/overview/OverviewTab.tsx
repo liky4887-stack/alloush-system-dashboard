@@ -2,23 +2,39 @@ import { CpoRequest, Employee } from '@/types';
 import RigCard from './RigCard';
 import { Users, AlertTriangle, Clock } from 'lucide-react';
 
-export default function OverviewTab({ requests, employees, onRigClick }: { requests: CpoRequest[], employees: Employee[], onRigClick: (rig: string) => void }) {
+const ALL_RIGS = ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11'];
+
+export default function OverviewTab({ 
+  requests, 
+  employees, 
+  onRigClick 
+}: { 
+  requests: CpoRequest[], 
+  employees: Employee[], 
+  onRigClick: (rig: string) => void 
+}) {
   const totalEmployees = employees.length;
   const totalSuspended = employees.filter(e => e.is_suspended).length;
   const totalPending = requests.filter(r => r.status === 'pending').length;
 
-  const rigStats = employees.reduce((acc, emp) => {
-    const rig = emp.rig || 'غير محدد';
-    if (!acc[rig]) acc[rig] = { total: 0, suspended: 0 };
-    acc[rig].total++;
-    if (emp.is_suspended) acc[rig].suspended++;
-    return acc;
-  }, {} as Record<string, { total: number, suspended: number }>);
+  // Initialize with all rigs so they always show up
+  const rigStats: Record<string, { total: number, suspended: number }> = {};
+  ALL_RIGS.forEach(rig => {
+    rigStats[rig] = { total: 0, suspended: 0 };
+  });
 
-  const sortedRigs = Object.keys(rigStats).sort();
+  // Populate with live data
+  employees.forEach(emp => {
+    const rig = emp.rig || 'B2'; // fallback if null
+    if (rigStats[rig]) {
+      rigStats[rig].total++;
+      if (emp.is_suspended) rigStats[rig].suspended++;
+    }
+  });
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-8" dir="rtl">
+      {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center justify-between">
           <div>
@@ -45,27 +61,44 @@ export default function OverviewTab({ requests, employees, onRigClick }: { reque
         </div>
       </div>
 
-      <div>
-        <h3 className="text-lg font-bold text-zinc-100 mb-4">إحصائيات الحفارات</h3>
-        {sortedRigs.length === 0 ? (
-          <div className="text-zinc-500 text-center py-8">لا توجد بيانات موظفين بعد.</div>
+      {/* Master Employee List (Names & IDs) */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-zinc-100 mb-4 flex items-center gap-2">
+          <Users size={20} className="text-emerald-500" />
+          قائمة الموظفين الكاملة
+        </h3>
+        {employees.length === 0 ? (
+          <div className="text-zinc-500 text-sm">لا يوجد موظفين مسجلين في النظام حتى الآن.</div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {sortedRigs.map(rig => (
-              <div 
-                key={rig} 
-                onClick={() => onRigClick(rig)}
-                className="cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/10"
-              >
-                <RigCard 
-                  rig={rig} 
-                  total={rigStats[rig].total} 
-                  suspended={rigStats[rig].suspended} 
-                />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto pr-2">
+            {employees.map(emp => (
+              <div key={emp.id} className="bg-zinc-800/50 border border-zinc-700/50 p-3 rounded-lg flex justify-between items-center text-sm">
+                <span className="text-zinc-200">{emp.name}</span>
+                <span className="text-zinc-400 font-mono bg-zinc-800 px-2 py-0.5 rounded">{emp.employee_number}</span>
               </div>
             ))}
           </div>
         )}
+      </div>
+
+      {/* Rig Breakdown */}
+      <div>
+        <h3 className="text-lg font-bold text-zinc-100 mb-4">إحصائيات الحفارات</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {ALL_RIGS.map(rig => (
+            <div 
+              key={rig} 
+              onClick={() => onRigClick(rig)}
+              className="cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/10"
+            >
+              <RigCard 
+                rig={rig} 
+                total={rigStats[rig].total} 
+                suspended={rigStats[rig].suspended} 
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
