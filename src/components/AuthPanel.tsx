@@ -1,9 +1,23 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Lock, User } from 'lucide-react';
+import { Loader2, Lock, User, ChevronDown } from 'lucide-react';
+
+const RIG_OPTIONS = [
+  { value: 'HR', label: 'HR (الموارد البشرية)' },
+  { value: 'B2', label: 'B2' },
+  { value: 'B3', label: 'B3' },
+  { value: 'B4', label: 'B4' },
+  { value: 'B5', label: 'B5' },
+  { value: 'B6', label: 'B6' },
+  { value: 'B7', label: 'B7' },
+  { value: 'B8', label: 'B8' },
+  { value: 'B9', label: 'B9' },
+  { value: 'B10', label: 'B10' },
+  { value: 'B11', label: 'B11' },
+];
 
 export default function AuthPanel({ onClose }: { onClose: () => void }) {
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState('HR');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -14,14 +28,8 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
     setError('');
 
     let email = '';
-    const upper = username.trim().toUpperCase();
-    if (upper === 'HR') email = 'hr@alloush.local';
-    else if (/^B(1[0-1]|[2-9])$/.test(upper)) email = upper.toLowerCase() + '@alloush.local';
-    else {
-      setError('رقم الحفارة غير صحيح (B2 to B11 or HR)');
-      setLoading(false);
-      return;
-    }
+    if (username === 'HR') email = 'hr@alloush.local';
+    else email = username.toLowerCase() + '@alloush.local';
 
     const { error: authError } = await supabase.auth.signInWithPassword({
       email,
@@ -29,7 +37,6 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
     });
 
     if (authError) {
-      // Show the exact Supabase error message
       setError(authError.message + ' (' + email + ')');
       setLoading(false);
     } else {
@@ -46,15 +53,19 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
 
         <div className="relative">
           <User className="absolute right-3 top-3 text-zinc-500" size={18} />
-          <input
-            type="text"
-            placeholder="رقم الحفارة (B2-B11) أو HR"
+          <select
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-3 text-white focus:outline-none focus:border-emerald-500 text-right"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-10 text-white focus:outline-none focus:border-emerald-500 text-right appearance-none cursor-pointer"
             dir="rtl"
-            required
-          />
+          >
+            {RIG_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute left-3 top-3 text-zinc-500 pointer-events-none" size={18} />
         </div>
 
         <div className="relative">
