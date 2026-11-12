@@ -53,12 +53,12 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
         {error && <div className="text-red-400 text-sm text-center bg-red-900/20 p-2 rounded">{error}</div>}
 
         <div className="relative">
-          <User className="absolute right-3 top-3 text-zinc-500" size={18} />
+          <User className="absolute left-3 top-3 text-zinc-500" size={18} />
           <select
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-10 text-white focus:outline-none focus:border-emerald-500 text-right appearance-none cursor-pointer"
-            dir="rtl"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-10 text-white focus:outline-none focus:border-emerald-500 text-left appearance-none cursor-pointer"
+            dir="ltr"
           >
             {RIG_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -66,15 +66,15 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
               </option>
             ))}
           </select>
-          <ChevronDown className="absolute left-3 top-3 text-zinc-500 pointer-events-none" size={18} />
+          <ChevronDown className="absolute right-3 top-3 text-zinc-500 pointer-events-none" size={18} />
         </div>
 
         <div className="relative">
-          <Lock className="absolute right-3 top-3 text-zinc-500" size={18} />
+          <Lock className="absolute left-3 top-3 text-zinc-500" size={18} />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute left-3 top-3 text-zinc-500 hover:text-zinc-300 focus:outline-none"
+            className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300 focus:outline-none"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -83,8 +83,8 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
             placeholder="كلمة المرور"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-10 text-white focus:outline-none focus:border-emerald-500 text-right"
-            dir="rtl"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-10 text-white focus:outline-none focus:border-emerald-500 text-left"
+            dir="ltr"
             required
           />
         </div>
