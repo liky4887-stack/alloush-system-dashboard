@@ -28,9 +28,15 @@ export const EMPLOYEES: Employee[] = [
   { id: '12', employeeNumber: '00280', name: 'أحمد فاضل الخطيب',             position: 'RT',           nationality: 'SYRIAN',    contact: '0944567890',  rig: 'B5' },
   { id: '13', employeeNumber: '00290', name: 'عمر يوسف القرضاوي',            position: 'FM',           nationality: 'EGYPT',     contact: '',            rig: 'B6' },
   { id: '14', employeeNumber: '00291', name: 'ماجد إبراهيم العجمي',          position: 'TP',           nationality: 'ALGERIAN',  contact: '0771234567',  rig: 'B6' },
-  { id: '15', employeeNumber: '00300', name: 'فتحي محمد البشير',             position: 'DRIVER',       nationality: 'LIBYA',     contact: '0921098765',  rig: 'B7' },
+  { id: '15', employeeNumber: '00300', name: 'فتحي محمد البشير',             position: 'DRIVER',       nationality: 'LIBYA',     contact: '0921098765',  rig: 'B7' }
 ];
 
 export const NATIONALITIES = ['LIBYA', 'ALGERIAN', 'EGYPT', 'SYRIAN', 'TUNISIAN', 'MOROCCAN', 'OTHER'];
-export const DESTINATIONS = ['إلى البريقة', 'طيران أو بر', 'عبر طرابلس'];
+export const LIBYA_DESTINATIONS = ['الهيب', 'طرابلس', 'بنغازي'];
+export const INTERNATIONAL_DESTINATIONS = ['تونس', 'الجزائر', 'مصر', 'سوريا'];
+export const TRAVEL_MODES = [
+  { id: 'road_half_fly', label: 'نصف الطريق ثم طيران' },
+  { id: 'fly', label: 'طيران مباشر' },
+  { id: 'car', label: 'بالسيارة' },
+] as const;
 export const GRADES = ['B2','B3','B5','B6','B7','B8','B9','B10','B11','ساحة اللهيب'];

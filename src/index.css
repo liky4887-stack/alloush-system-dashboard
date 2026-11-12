@@ -22,3 +22,9 @@
     background: #52525b;
   }
 }
+
+@layer components {
+  .input-dark {
+    @apply w-full px-4 py-3 rounded-xl border border-zinc-700/70 bg-zinc-800/80 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors;
+  }
+}

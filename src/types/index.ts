@@ -15,7 +15,11 @@ export interface Employee {
   nationality: string;
   contact: string;
   rig: string;
+  is_suspended?: boolean;
 }
+
+export type TravelMode = 'road_half_fly' | 'fly' | 'car';
+export type RequestStatus = 'pending' | 'approved' | 'rejected';
 
 export interface CpoRequest {
   id: string;
@@ -23,9 +27,12 @@ export interface CpoRequest {
   grade: string;
   nationality: string;
   destination: string;
-  status: 'pending' | 'approved' | 'rejected';
+  final_destination: string;
+  route_stops: string[];
+  travel_mode: TravelMode;
+  flight_ticket_confirmed: boolean;
+  hotel_ticket_confirmed: boolean;
+  status: RequestStatus;
   created_at: string;
   updated_at: string;
 }
-
-export type RequestStatus = 'pending' | 'approved' | 'rejected';
