@@ -2,12 +2,11 @@ import { CpoRequest, Employee } from '@/types';
 import RigCard from './RigCard';
 import { Users, AlertTriangle, Clock } from 'lucide-react';
 
-export default function OverviewTab({ requests, employees }: { requests: CpoRequest[], employees: Employee[] }) {
+export default function OverviewTab({ requests, employees, onRigClick }: { requests: CpoRequest[], employees: Employee[], onRigClick: (rig: string) => void }) {
   const totalEmployees = employees.length;
   const totalSuspended = employees.filter(e => e.is_suspended).length;
   const totalPending = requests.filter(r => r.status === 'pending').length;
 
-  // Group live employees by rig to pass to the cards
   const rigStats = employees.reduce((acc, emp) => {
     const rig = emp.rig || 'غير محدد';
     if (!acc[rig]) acc[rig] = { total: 0, suspended: 0 };
@@ -20,7 +19,6 @@ export default function OverviewTab({ requests, employees }: { requests: CpoRequ
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center justify-between">
           <div>
@@ -47,7 +45,6 @@ export default function OverviewTab({ requests, employees }: { requests: CpoRequ
         </div>
       </div>
 
-      {/* Rig Breakdown */}
       <div>
         <h3 className="text-lg font-bold text-zinc-100 mb-4">إحصائيات الحفارات</h3>
         {sortedRigs.length === 0 ? (
@@ -55,12 +52,17 @@ export default function OverviewTab({ requests, employees }: { requests: CpoRequ
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {sortedRigs.map(rig => (
-              <RigCard 
+              <div 
                 key={rig} 
-                rig={rig} 
-                total={rigStats[rig].total} 
-                suspended={rigStats[rig].suspended} 
-              />
+                onClick={() => onRigClick(rig)}
+                className="cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/10"
+              >
+                <RigCard 
+                  rig={rig} 
+                  total={rigStats[rig].total} 
+                  suspended={rigStats[rig].suspended} 
+                />
+              </div>
             ))}
           </div>
         )}

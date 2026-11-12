@@ -18,6 +18,9 @@ export default function App() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [authOpen, setAuthOpen] = useState(false);
+  
+  // This holds the rig clicked from Overview
+  const [targetRig, setTargetRig] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -65,6 +68,12 @@ export default function App() {
     await supabase.auth.signOut();
   };
 
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    // Clear the target rig if they navigate manually
+    if (tab !== 'employees') setTargetRig(null);
+  };
+
   if (!isSupabaseConfigured) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 text-center">
@@ -93,10 +102,38 @@ export default function App() {
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-12">
       <Header session={session} isHr={isHr} onSignOut={handleSignOut} onOpenAuth={() => setAuthOpen(true)} />
       <main className="max-w-5xl mx-auto px-4 mt-6">
-        <TabBar active={activeTab} onChange={setActiveTab} isHr={isHr} />
-        {activeTab === 'overview' && isHr && <OverviewTab requests={requests} employees={employees} />}
-        {activeTab === 'crew-change' && <CrewChangeTab requests={requests} employees={employees} onRefresh={() => fetchData(profile.role, profile.rig)} isHr={isHr} userRig={profile.rig} />}
-        {activeTab === 'employees' && <EmployeesTab employees={employees} onRefresh={() => fetchData(profile.role, profile.rig)} isHr={isHr} userRig={profile.rig} />}
+        <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
+        
+        {activeTab === 'overview' && isHr && (
+          <OverviewTab 
+            requests={requests} 
+            employees={employees} 
+            onRigClick={(rig) => {
+              setTargetRig(rig);
+              setActiveTab('employees');
+            }} 
+          />
+        )}
+        
+        {activeTab === 'crew-change' && (
+          <CrewChangeTab 
+            requests={requests} 
+            employees={employees} 
+            onRefresh={() => fetchData(profile.role, profile.rig)} 
+            isHr={isHr} 
+            userRig={profile.rig} 
+          />
+        )}
+        
+        {activeTab === 'employees' && (
+          <EmployeesTab 
+            employees={employees} 
+            onRefresh={() => fetchData(profile.role, profile.rig)} 
+            isHr={isHr} 
+            userRig={profile.rig} 
+            initialRig={targetRig}
+          />
+        )}
       </main>
       {authOpen && <AuthPanel onClose={() => setAuthOpen(false)} />}
     </div>

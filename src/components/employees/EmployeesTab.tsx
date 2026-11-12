@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Employee } from '@/types';
 import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -9,14 +9,22 @@ interface Props {
   onRefresh: () => void;
   isHr: boolean;
   userRig: string | null;
+  initialRig?: string | null;
 }
 
-export default function EmployeesTab({ employees, onRefresh, isHr, userRig }: Props) {
+export default function EmployeesTab({ employees, onRefresh, isHr, userRig, initialRig }: Props) {
   const [search, setSearch] = useState('');
+  // Default state is empty (all folded)
   const [expandedRigs, setExpandedRigs] = useState<string[]>(userRig ? [userRig] : []);
   const [showContact, setShowContact] = useState(false);
 
-  // Add Employee State
+  // Listen for clicks from the Overview tab
+  useEffect(() => {
+    if (initialRig && !expandedRigs.includes(initialRig)) {
+      setExpandedRigs(prev => [...prev, initialRig]);
+    }
+  }, [initialRig]);
+
   const [isAdding, setIsAdding] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -30,14 +38,12 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig }: Pr
     );
   };
 
-  // Filter employees by search first
   const filtered = employees.filter(e => 
     e.name.includes(search) || 
     e.employee_number.includes(search) ||
     (e.position && e.position.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // Group by rig
   const grouped = filtered.reduce((acc, emp) => {
     const rig = emp.rig || 'غير محدد';
     if (!acc[rig]) acc[rig] = [];
@@ -70,7 +76,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig }: Pr
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Header Controls */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
         <div className="relative w-full md:w-96">
           <Search className="absolute right-3 top-3 text-zinc-500" size={18} />
@@ -101,7 +106,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig }: Pr
         </div>
       </div>
 
-      {/* Foldable Accordion List */}
       <div className="space-y-4">
         {sortedRigs.length === 0 ? (
           <div className="text-center text-zinc-500 py-12 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
@@ -114,7 +118,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig }: Pr
 
             return (
               <div key={rig} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                {/* Accordion Header */}
                 <button 
                   onClick={() => toggleRig(rig)}
                   className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
@@ -130,7 +133,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig }: Pr
                   </div>
                 </button>
 
-                {/* Accordion Body */}
                 {isExpanded && (
                   <div className="border-t border-zinc-800">
                     <div className="overflow-x-auto">
@@ -178,7 +180,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig }: Pr
         )}
       </div>
 
-      {/* Add Employee Modal */}
       {isAdding && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <form onSubmit={handleAdd} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
