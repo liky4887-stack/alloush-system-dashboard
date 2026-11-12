@@ -11,6 +11,7 @@ interface OverviewTabProps {
 export default function OverviewTab({ pendingCount }: OverviewTabProps) {
   return (
     <div className="space-y-4" dir="rtl">
+      {/* Hero stat card */}
       <div className="relative overflow-hidden rounded-2xl border border-zinc-700/60 bg-gradient-to-br from-zinc-800/80 to-zinc-900/80 backdrop-blur p-6 shadow-xl">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/10 to-transparent pointer-events-none" />
         <div className="relative flex flex-col items-end gap-2">
@@ -31,6 +32,7 @@ export default function OverviewTab({ pendingCount }: OverviewTabProps) {
         </div>
       </div>
 
+      {/* Rig grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {RIGS.map((rig) => (
           <RigCard key={rig.id} rig={rig} />
