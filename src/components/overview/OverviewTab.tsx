@@ -1,7 +1,19 @@
 import { CpoRequest, Employee } from '@/types';
 import { Users, AlertTriangle, Clock } from 'lucide-react';
 
-const ALL_RIGS = ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11'];
+const ALL_RIGS = [
+  { id: 'B2', label: 'B2' },
+  { id: 'B3', label: 'B3' },
+  { id: 'B4', label: 'B4' },
+  { id: 'B5', label: 'B5' },
+  { id: 'B6', label: 'B6' },
+  { id: 'B7', label: 'B7' },
+  { id: 'B8', label: 'B8' },
+  { id: 'B9', label: 'B9' },
+  { id: 'B10', label: 'B10' },
+  { id: 'B11', label: 'B11' },
+  { id: 'LAHEEB', label: 'ساحة اللهيب' },
+];
 
 export default function OverviewTab({ 
   requests, 
@@ -18,11 +30,16 @@ export default function OverviewTab({
 
   const rigStats: Record<string, { total: number, suspended: number }> = {};
   ALL_RIGS.forEach(rig => {
-    rigStats[rig] = { total: 0, suspended: 0 };
+    rigStats[rig.id] = { total: 0, suspended: 0 };
   });
 
   employees.forEach(emp => {
-    const rig = emp.rig || 'B2';
+    let rig = emp.rig || 'B2';
+    // Normalize any variations of Laheeb from the excel import
+    if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'lAHEEB' || rig === 'لهيب') {
+      rig = 'LAHEEB';
+    }
+    
     if (rigStats[rig]) {
       rigStats[rig].total++;
       if (emp.is_suspended) rigStats[rig].suspended++;
@@ -84,20 +101,20 @@ export default function OverviewTab({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {ALL_RIGS.map(rig => (
             <div 
-              key={rig} 
-              onClick={() => onRigClick(rig)}
+              key={rig.id} 
+              onClick={() => onRigClick(rig.id)}
               className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl cursor-pointer transition-all hover:border-emerald-500/50 hover:bg-zinc-800/50"
             >
               <div className="flex justify-between items-start mb-2">
-                <span className="text-emerald-500 font-bold text-lg">{rig}</span>
+                <span className="text-emerald-500 font-bold text-lg">{rig.label}</span>
                 <Users size={20} className="text-zinc-600" />
               </div>
-              <div className="text-2xl font-bold text-white">{rigStats[rig].total}</div>
+              <div className="text-2xl font-bold text-white">{rigStats[rig.id].total}</div>
               <div className="text-xs text-zinc-500">موظف</div>
-              {rigStats[rig].suspended > 0 && (
+              {rigStats[rig.id].suspended > 0 && (
                 <div className="flex items-center gap-1 text-red-400 text-xs mt-2">
                   <AlertTriangle size={12} />
-                  <span>{rigStats[rig].suspended} موقوف</span>
+                  <span>{rigStats[rig.id].suspended} موقوف</span>
                 </div>
               )}
             </div>
