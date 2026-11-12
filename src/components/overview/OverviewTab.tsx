@@ -1,5 +1,4 @@
 import { CpoRequest, Employee } from '@/types';
-import RigCard from './RigCard';
 import { Users, AlertTriangle, Clock } from 'lucide-react';
 
 const ALL_RIGS = ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11'];
@@ -17,15 +16,13 @@ export default function OverviewTab({
   const totalSuspended = employees.filter(e => e.is_suspended).length;
   const totalPending = requests.filter(r => r.status === 'pending').length;
 
-  // Initialize with all rigs so they always show up
   const rigStats: Record<string, { total: number, suspended: number }> = {};
   ALL_RIGS.forEach(rig => {
     rigStats[rig] = { total: 0, suspended: 0 };
   });
 
-  // Populate with live data
   employees.forEach(emp => {
-    const rig = emp.rig || 'B2'; // fallback if null
+    const rig = emp.rig || 'B2';
     if (rigStats[rig]) {
       rigStats[rig].total++;
       if (emp.is_suspended) rigStats[rig].suspended++;
@@ -61,20 +58,20 @@ export default function OverviewTab({
         </div>
       </div>
 
-      {/* Master Employee List (Names & IDs) */}
+      {/* Master Employee List */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <h3 className="text-lg font-bold text-zinc-100 mb-4 flex items-center gap-2">
           <Users size={20} className="text-emerald-500" />
           قائمة الموظفين الكاملة
         </h3>
         {employees.length === 0 ? (
-          <div className="text-zinc-500 text-sm">لا يوجد موظفين مسجلين في النظام حتى الآن.</div>
+          <div className="text-zinc-500 text-sm">لا يوجد موظفين مسجلين في النظام حتى الآن. قم باستيراد ملف الإكسل.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto pr-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-2">
             {employees.map(emp => (
-              <div key={emp.id} className="bg-zinc-800/50 border border-zinc-700/50 p-3 rounded-lg flex justify-between items-center text-sm">
-                <span className="text-zinc-200">{emp.name}</span>
-                <span className="text-zinc-400 font-mono bg-zinc-800 px-2 py-0.5 rounded">{emp.employee_number}</span>
+              <div key={emp.id} className="bg-zinc-800/50 border border-zinc-700/50 p-2.5 rounded-lg flex justify-between items-center text-sm">
+                <span className="text-zinc-200 truncate pr-2">{emp.name}</span>
+                <span className="text-zinc-400 font-mono bg-zinc-800 px-2 py-0.5 rounded text-xs shrink-0">{emp.employee_number}</span>
               </div>
             ))}
           </div>
@@ -89,13 +86,20 @@ export default function OverviewTab({
             <div 
               key={rig} 
               onClick={() => onRigClick(rig)}
-              className="cursor-pointer transition-transform hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/10"
+              className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl cursor-pointer transition-all hover:border-emerald-500/50 hover:bg-zinc-800/50"
             >
-              <RigCard 
-                rig={rig} 
-                total={rigStats[rig].total} 
-                suspended={rigStats[rig].suspended} 
-              />
+              <div className="flex justify-between items-start mb-2">
+                <span className="text-emerald-500 font-bold text-lg">{rig}</span>
+                <Users size={20} className="text-zinc-600" />
+              </div>
+              <div className="text-2xl font-bold text-white">{rigStats[rig].total}</div>
+              <div className="text-xs text-zinc-500">موظف</div>
+              {rigStats[rig].suspended > 0 && (
+                <div className="flex items-center gap-1 text-red-400 text-xs mt-2">
+                  <AlertTriangle size={12} />
+                  <span>{rigStats[rig].suspended} موقوف</span>
+                </div>
+              )}
             </div>
           ))}
         </div>
