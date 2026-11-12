@@ -18,8 +18,6 @@ export default function App() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [authOpen, setAuthOpen] = useState(false);
-  
-  // This holds the rig clicked from Overview
   const [targetRig, setTargetRig] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,23 +31,33 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) fetchProfile(session.user.id);
-      else setProfile(null);
+      else {
+        setProfile(null);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const fetchProfile = async (userId: string) => {
+    setLoading(true);
     const { data } = await supabase.from('user_profiles').select('*').eq('id', userId).single();
+    
     if (data) {
       setProfile(data);
       if (data.role === 'SUPERVISOR') setActiveTab('crew-change');
       fetchData(data.role, data.rig);
+    } else {
+      // If no profile exists (stale session from deleted DB), force sign out
+      console.error("No profile found, signing out.");
+      await supabase.auth.signOut();
+      setProfile(null);
+      setLoading(false);
     }
   };
 
   const fetchData = async (role: string, rig: string | null) => {
-    setLoading(true);
     let reqQuery = supabase.from('cpo_requests').select('*').order('created_at', { ascending: false });
     let empQuery = supabase.from('employees').select('*');
     
@@ -70,7 +78,6 @@ export default function App() {
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
-    // Clear the target rig if they navigate manually
     if (tab !== 'employees') setTargetRig(null);
   };
 
@@ -95,7 +102,7 @@ export default function App() {
     );
   }
 
-  if (!profile) return <div className="min-h-screen bg-zinc-950 flex justify-center items-center text-white">جاري التحميل...</div>;
+  if (loading || !profile) return <div className="min-h-screen bg-zinc-950 flex justify-center items-center text-white">جاري التحميل...</div>;
   const isHr = profile.role === 'HR';
 
   return (
