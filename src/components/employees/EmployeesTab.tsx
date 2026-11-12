@@ -1,193 +1,216 @@
-import { useMemo, useState } from 'react';
-import { Eye, EyeOff, Loader2, Plus, Search, UserPlus, X } from 'lucide-react';
-import { RIGS, NATIONALITIES } from '@/data/mock';
+import { useState } from 'react';
+import { Employee } from '@/types';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import type { Employee } from '@/types';
+import { NATIONALITIES } from '@/data/mock';
 
-interface EmployeesTabProps {
+interface Props {
   employees: Employee[];
-  loading: boolean;
-  onRefresh: () => Promise<void> | void;
+  onRefresh: () => void;
+  isHr: boolean;
+  userRig: string | null;
 }
 
-interface EmployeeForm {
-  employeeNumber: string;
-  name: string;
-  position: string;
-  nationality: string;
-  contact: string;
-  rig: string;
-}
-
-const EMPTY_FORM: EmployeeForm = {
-  employeeNumber: '',
-  name: '',
-  position: '',
-  nationality: '',
-  contact: '',
-  rig: 'B2',
-};
-
-export default function EmployeesTab({ employees, loading, onRefresh }: EmployeesTabProps) {
-  const [selectedRig, setSelectedRig] = useState('B2');
+export default function EmployeesTab({ employees, onRefresh, isHr, userRig }: Props) {
   const [search, setSearch] = useState('');
-  const [hideContacts, setHideContacts] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [form, setForm] = useState<EmployeeForm>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [expandedRigs, setExpandedRigs] = useState<string[]>(userRig ? [userRig] : []);
+  const [showContact, setShowContact] = useState(false);
 
-  const selectedRigData = RIGS.find((rig) => rig.id === selectedRig);
-  const rigEmployees = useMemo(
-    () => employees.filter((employee) => employee.rig === selectedRig && (
-      search === '' ||
-      employee.name.includes(search) ||
-      employee.employeeNumber.includes(search) ||
-      employee.position.toLowerCase().includes(search.toLowerCase())
-    )),
-    [employees, search, selectedRig]
+  // Add Employee State
+  const [isAdding, setIsAdding] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2'
+  });
+
+  const toggleRig = (rig: string) => {
+    setExpandedRigs(prev => 
+      prev.includes(rig) ? prev.filter(r => r !== rig) : [...prev, rig]
+    );
+  };
+
+  // Filter employees by search first
+  const filtered = employees.filter(e => 
+    e.name.includes(search) || 
+    e.employee_number.includes(search) ||
+    (e.position && e.position.toLowerCase().includes(search.toLowerCase()))
   );
 
-  function openAddForm() {
-    setForm({ ...EMPTY_FORM, rig: selectedRig });
+  // Group by rig
+  const grouped = filtered.reduce((acc, emp) => {
+    const rig = emp.rig || 'غير محدد';
+    if (!acc[rig]) acc[rig] = [];
+    acc[rig].push(emp);
+    return acc;
+  }, {} as Record<string, Employee[]>);
+
+  const sortedRigs = Object.keys(grouped).sort();
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     setError('');
-    setAddOpen(true);
-  }
 
-  function updateForm(field: keyof EmployeeForm, value: string) {
-    setForm((current) => ({ ...current, [field]: value }));
-  }
-
-  async function handleAdd(event: React.FormEvent) {
-    event.preventDefault();
-    setError('');
-    if (!form.employeeNumber.trim() || !form.name.trim() || !form.position.trim() || !form.nationality || !form.rig) {
-      setError('يرجى تعبئة الرقم والاسم والمنصب والجنسية والحفارة');
-      return;
-    }
-
-    setSaving(true);
-    const { error: dbError } = await supabase.from('employees').insert({
-      employee_number: form.employeeNumber.trim(),
-      name: form.name.trim(),
-      position: form.position.trim(),
+    const { error: insertError } = await supabase.from('employees').insert({
+      name: form.name,
+      employee_number: form.employee_number,
+      position: form.position,
       nationality: form.nationality,
-      contact: form.contact.trim(),
-      rig: form.rig,
+      rig: form.rig
     });
-    setSaving(false);
 
-    if (dbError) {
-      console.error('employee creation failed', dbError);
-      setError('تعذر إضافة الموظف. قد يكون الرقم الوظيفي مستخدماً من قبل.');
-      return;
-    }
-
-    setAddOpen(false);
-    setForm(EMPTY_FORM);
-    await onRefresh();
-  }
+    setLoading(false);
+    if (insertError) return setError(insertError.message);
+    
+    setIsAdding(false);
+    setForm({ name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2' });
+    onRefresh();
+  };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4" dir="rtl">
-      <div className="md:w-40 flex-shrink-0">
-        <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/60 overflow-hidden">
-          {RIGS.map((rig) => (
-            <button
-              key={rig.id}
-              onClick={() => { setSelectedRig(rig.id); setSearch(''); }}
-              className={`w-full text-right px-4 py-3 text-sm font-medium transition-colors border-b border-zinc-700/40 last:border-0 ${selectedRig === rig.id ? 'bg-emerald-700/40 text-emerald-300 border-r-2 border-r-emerald-500' : 'text-zinc-400 hover:bg-zinc-700/40 hover:text-zinc-200'}`}
+    <div className="space-y-6" dir="rtl">
+      {/* Header Controls */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute right-3 top-3 text-zinc-500" size={18} />
+          <input
+            type="text"
+            placeholder="ابحث بالاسم أو الرقم الوظيفي..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-3 text-white focus:outline-none focus:border-emerald-500"
+          />
+        </div>
+        
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-400 hover:text-zinc-200">
+            <input type="checkbox" checked={showContact} onChange={e => setShowContact(e.target.checked)} className="rounded border-zinc-700 bg-zinc-800 text-emerald-500" />
+            عرض أرقام الهواتف
+          </label>
+          
+          {isHr && (
+            <button 
+              onClick={() => setIsAdding(true)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
             >
-              {rig.id === 'FLAME' ? 'ساحة اللهيب' : rig.id}
+              <UserPlus size={16} />
+              إضافة موظف
             </button>
-          ))}
+          )}
         </div>
       </div>
 
-      <div className="flex-1 min-w-0 space-y-4">
-        <div className="rounded-xl border border-zinc-700/60 bg-zinc-800/60 p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-            <div>
-              <h2 className="text-base font-bold text-white">موظفو {selectedRigData?.label}</h2>
-              <p className="text-xs text-zinc-500 mt-0.5">اختيار الحفارة هنا للتصفية فقط، ويمكن عرض بقية الحفارات من القائمة.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setHideContacts((current) => !current)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-800 text-xs text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors">
-                {hideContacts ? <Eye size={12} /> : <EyeOff size={12} />}
-                {hideContacts ? 'إظهار' : 'إخفاء'} التواصل
-              </button>
-              <button onClick={openAddForm} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white transition-colors">
-                <UserPlus size={13} /> إضافة موظف
-              </button>
-            </div>
+      {/* Foldable Accordion List */}
+      <div className="space-y-4">
+        {sortedRigs.length === 0 ? (
+          <div className="text-center text-zinc-500 py-12 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
+            لا توجد نتائج مطابقة للبحث.
           </div>
+        ) : (
+          sortedRigs.map(rig => {
+            const isExpanded = expandedRigs.includes(rig);
+            const rigEmployees = grouped[rig];
 
-          <div className="relative">
-            <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
-            <input type="text" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="بحث بالاسم أو الرقم أو المنصب..." className="w-full pr-9 pl-4 py-2.5 rounded-lg border border-zinc-700/70 bg-zinc-900/70 text-sm text-white text-right placeholder-zinc-500 focus:outline-none focus:border-emerald-500/70 transition-colors" />
-          </div>
-        </div>
+            return (
+              <div key={rig} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                {/* Accordion Header */}
+                <button 
+                  onClick={() => toggleRig(rig)}
+                  className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-zinc-700/50 p-2 rounded-lg text-emerald-500">
+                      {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                    </div>
+                    <span className="text-lg font-bold text-zinc-100">حفارة {rig}</span>
+                    <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">
+                      {rigEmployees.length} موظف
+                    </span>
+                  </div>
+                </button>
 
-        <div className="rounded-xl border border-zinc-700/50 bg-zinc-800/40 overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm min-w-[560px]">
-            <thead>
-              <tr className="border-b border-zinc-700/50 bg-zinc-900/60">
-                <th className="text-right px-4 py-3 text-xs font-semibold text-zinc-400 whitespace-nowrap">الرقم الوظيفي</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-zinc-400">الاسم</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-zinc-400 whitespace-nowrap">المنصب</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-zinc-400 whitespace-nowrap">الجنسية</th>
-                {!hideContacts && <th className="text-right px-4 py-3 text-xs font-semibold text-zinc-400 whitespace-nowrap">التواصل</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={hideContacts ? 4 : 5} className="text-center py-16"><Loader2 size={22} className="mx-auto animate-spin text-emerald-500" /></td></tr>
-              ) : rigEmployees.length === 0 ? (
-                <tr><td colSpan={hideContacts ? 4 : 5} className="text-center py-16 text-zinc-500 text-sm">لا توجد نتائج</td></tr>
-              ) : (
-                rigEmployees.map((employee, index) => (
-                  <tr key={employee.id} className={`border-b border-zinc-700/30 last:border-0 transition-colors hover:bg-zinc-700/20 ${index % 2 === 0 ? '' : 'bg-zinc-900/20'}`}>
-                    <td className="px-4 py-3 text-emerald-400 font-mono text-xs whitespace-nowrap">{employee.employeeNumber}</td>
-                    <td className="px-4 py-3 text-white font-medium">{employee.name}</td>
-                    <td className="px-4 py-3 text-zinc-300 whitespace-nowrap">{employee.position}</td>
-                    <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">{employee.nationality}</td>
-                    {!hideContacts && <td className="px-4 py-3 text-zinc-400 font-mono text-xs whitespace-nowrap">{employee.contact || <span className="text-zinc-700">—</span>}</td>}
-                  </tr>
-                ))
+                {/* Accordion Body */}
+                {isExpanded && (
+                  <div className="border-t border-zinc-800">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-right">
+                        <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
+                          <tr>
+                            <th className="px-6 py-3 font-medium">الاسم</th>
+                            <th className="px-6 py-3 font-medium">الرقم الوظيفي</th>
+                            <th className="px-6 py-3 font-medium">الوظيفة</th>
+                            <th className="px-6 py-3 font-medium">الجنسية</th>
+                            <th className="px-6 py-3 font-medium">الحالة</th>
+                            {showContact && <th className="px-6 py-3 font-medium">الهاتف</th>}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800/50">
+                          {rigEmployees.map(emp => (
+                            <tr key={emp.id} className="hover:bg-zinc-800/20">
+                              <td className="px-6 py-3 text-zinc-200">{emp.name}</td>
+                              <td className="px-6 py-3 text-zinc-400 font-mono">{emp.employee_number}</td>
+                              <td className="px-6 py-3 text-zinc-400">{emp.position}</td>
+                              <td className="px-6 py-3 text-zinc-400">{emp.nationality}</td>
+                              <td className="px-6 py-3">
+                                {emp.is_suspended ? (
+                                  <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs">موقوف</span>
+                                ) : (
+                                  <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs">نشط</span>
+                                )}
+                              </td>
+                              {showContact && (
+                                <td className="px-6 py-3 text-zinc-400 font-mono flex items-center gap-2">
+                                  <Phone size={14} className="text-zinc-500" />
+                                  {emp.phone || 'غير مسجل'}
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add Employee Modal */}
+      {isAdding && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <form onSubmit={handleAdd} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white">إضافة موظف</h3>
+              <button type="button" onClick={() => setIsAdding(false)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+            </div>
+
+            {error && <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm">{error}</div>}
+
+            <div className="space-y-3">
+              <input type="text" placeholder="الاسم الكامل" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              <input type="text" placeholder="الرقم الوظيفي" required value={form.employee_number} onChange={e => setForm({...form, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              <input type="text" placeholder="الوظيفة" value={form.position} onChange={e => setForm({...form, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              
+              <select value={form.nationality} onChange={e => setForm({...form, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
+                <option value="" disabled>الجنسية</option>
+                {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+
+              {isHr && (
+                <select value={form.rig} onChange={e => setForm({...form, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
+                  {['B2','B3','B4','B5','B6','B7','B8','B9','B10','B11'].map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </div>
 
-      {addOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <form onSubmit={handleAdd} className="w-full max-w-xl rounded-2xl border border-zinc-700 bg-zinc-900 shadow-2xl p-5" dir="rtl">
-            <div className="flex items-center justify-between mb-4">
-              <button type="button" onClick={() => setAddOpen(false)} className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-800 hover:text-white"><X size={18} /></button>
-              <div><h3 className="font-bold text-white">إضافة موظف</h3><p className="text-xs text-zinc-500 mt-1">سيظهر الموظف مباشرة تحت الحفارة المختارة.</p></div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input required value={form.employeeNumber} onChange={(event) => updateForm('employeeNumber', event.target.value)} placeholder="الرقم الوظيفي" className="input-dark" />
-              <input required value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder="الاسم الكامل" className="input-dark" />
-              <input required value={form.position} onChange={(event) => updateForm('position', event.target.value)} placeholder="المنصب" className="input-dark" />
-              <input value={form.contact} onChange={(event) => updateForm('contact', event.target.value)} placeholder="رقم التواصل" className="input-dark" />
-              <select required value={form.nationality} onChange={(event) => updateForm('nationality', event.target.value)} className="input-dark">
-                <option value="">الجنسية</option>
-                {NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationality}</option>)}
-              </select>
-              <select required value={form.rig} onChange={(event) => updateForm('rig', event.target.value)} className="input-dark">
-                {RIGS.map((rig) => <option key={rig.id} value={rig.id}>{rig.label}</option>)}
-              </select>
-            </div>
-            {error && <p className="mt-3 text-xs text-red-400">{error}</p>}
-            <div className="flex justify-end gap-2 mt-5">
-              <button type="button" onClick={() => setAddOpen(false)} className="px-4 py-2.5 rounded-xl border border-zinc-700 text-sm text-zinc-300 hover:bg-zinc-800 transition-colors">إلغاء</button>
-              <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-sm font-semibold text-white transition-colors">
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                حفظ الموظف
-              </button>
-            </div>
+            <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+              {loading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
+            </button>
           </form>
         </div>
       )}

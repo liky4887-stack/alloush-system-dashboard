@@ -1,42 +1,69 @@
-import { RIGS } from '@/data/mock';
+import { CpoRequest, Employee } from '@/types';
 import RigCard from './RigCard';
+import { Users, AlertTriangle, Clock } from 'lucide-react';
 
-const TOTAL_EMPLOYEES = RIGS.reduce((s, r) => s + r.total, 0);
-const TOTAL_SUSPENDED = RIGS.reduce((s, r) => s + r.suspended, 0);
+export default function OverviewTab({ requests, employees }: { requests: CpoRequest[], employees: Employee[] }) {
+  const totalEmployees = employees.length;
+  const totalSuspended = employees.filter(e => e.is_suspended).length;
+  const totalPending = requests.filter(r => r.status === 'pending').length;
 
-interface OverviewTabProps {
-  pendingCount: number;
-}
+  // Group live employees by rig to pass to the cards
+  const rigStats = employees.reduce((acc, emp) => {
+    const rig = emp.rig || 'غير محدد';
+    if (!acc[rig]) acc[rig] = { total: 0, suspended: 0 };
+    acc[rig].total++;
+    if (emp.is_suspended) acc[rig].suspended++;
+    return acc;
+  }, {} as Record<string, { total: number, suspended: number }>);
 
-export default function OverviewTab({ pendingCount }: OverviewTabProps) {
+  const sortedRigs = Object.keys(rigStats).sort();
+
   return (
-    <div className="space-y-4" dir="rtl">
-      {/* Hero stat card */}
-      <div className="relative overflow-hidden rounded-2xl border border-zinc-700/60 bg-gradient-to-br from-zinc-800/80 to-zinc-900/80 backdrop-blur p-6 shadow-xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/10 to-transparent pointer-events-none" />
-        <div className="relative flex flex-col items-end gap-2">
-          <span className="text-6xl font-extrabold text-white tabular-nums tracking-tight">
-            {TOTAL_EMPLOYEES.toLocaleString('ar-EG')}
-          </span>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-400">
-            <span>إجمالي الموظفين</span>
-            <span className="text-zinc-600">·</span>
-            <span>
-              الموقوفون <span className="text-amber-400 font-semibold">{TOTAL_SUSPENDED}</span>
-            </span>
-            <span className="text-zinc-600">·</span>
-            <span>
-              طلبات معلّقة <span className="text-emerald-400 font-semibold">{pendingCount}</span>
-            </span>
+    <div className="space-y-6" dir="rtl">
+      {/* Top Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center justify-between">
+          <div>
+            <div className="text-zinc-400 text-sm mb-1">إجمالي الموظفين</div>
+            <div className="text-3xl font-bold text-white">{totalEmployees}</div>
           </div>
+          <Users size={32} className="text-emerald-500" />
+        </div>
+        
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center justify-between">
+          <div>
+            <div className="text-zinc-400 text-sm mb-1">الطلبات المعلقة</div>
+            <div className="text-3xl font-bold text-white">{totalPending}</div>
+          </div>
+          <Clock size={32} className="text-amber-500" />
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center justify-between">
+          <div>
+            <div className="text-zinc-400 text-sm mb-1">الموظفين الموقوفين</div>
+            <div className="text-3xl font-bold text-white">{totalSuspended}</div>
+          </div>
+          <AlertTriangle size={32} className="text-red-500" />
         </div>
       </div>
 
-      {/* Rig grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        {RIGS.map((rig) => (
-          <RigCard key={rig.id} rig={rig} />
-        ))}
+      {/* Rig Breakdown */}
+      <div>
+        <h3 className="text-lg font-bold text-zinc-100 mb-4">إحصائيات الحفارات</h3>
+        {sortedRigs.length === 0 ? (
+          <div className="text-zinc-500 text-center py-8">لا توجد بيانات موظفين بعد.</div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {sortedRigs.map(rig => (
+              <RigCard 
+                key={rig} 
+                rig={rig} 
+                total={rigStats[rig].total} 
+                suspended={rigStats[rig].suspended} 
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
