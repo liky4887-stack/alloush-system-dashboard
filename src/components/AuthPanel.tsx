@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Lock, User, ChevronDown } from 'lucide-react';
+import { Loader2, Lock, User, ChevronDown, Eye, EyeOff } from 'lucide-react';
 
 const RIG_OPTIONS = [
   { value: 'HR', label: 'HR (الموارد البشرية)' },
@@ -19,6 +19,7 @@ const RIG_OPTIONS = [
 export default function AuthPanel({ onClose }: { onClose: () => void }) {
   const [username, setUsername] = useState('HR');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -70,12 +71,19 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
 
         <div className="relative">
           <Lock className="absolute right-3 top-3 text-zinc-500" size={18} />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute left-3 top-3 text-zinc-500 hover:text-zinc-300 focus:outline-none"
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
           <input
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="كلمة المرور"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-3 text-white focus:outline-none focus:border-emerald-500 text-right"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-10 text-white focus:outline-none focus:border-emerald-500 text-right"
             dir="rtl"
             required
           />
