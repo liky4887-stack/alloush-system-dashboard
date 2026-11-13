@@ -4,11 +4,11 @@ import type { Session } from '@supabase/supabase-js';
 interface HeaderProps {
   session: Session | null;
   isHr: boolean;
-  onAuthClick: () => void;
+  onOpenAuth: () => void;
   onSignOut: () => void;
 }
 
-export default function Header({ session, isHr, onAuthClick, onSignOut }: HeaderProps) {
+export default function Header({ session, isHr, onOpenAuth, onSignOut }: HeaderProps) {
   return (
     <header className="relative flex flex-col items-center pt-8 pb-4 px-6 select-none">
       <div className="absolute top-6 left-0 right-0 flex justify-between items-center px-4 sm:px-0" dir="ltr">
@@ -22,7 +22,7 @@ export default function Header({ session, isHr, onAuthClick, onSignOut }: Header
             خروج
           </button>
         ) : (
-          <button onClick={onAuthClick} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-800/60 bg-emerald-900/30 text-xs font-medium text-emerald-400 hover:bg-emerald-800/40 transition-colors" dir="rtl">
+          <button onClick={onOpenAuth} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-800/60 bg-emerald-900/30 text-xs font-medium text-emerald-400 hover:bg-emerald-800/40 transition-colors" dir="rtl">
             <LogIn size={12} />
             دخول HR
           </button>

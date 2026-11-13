@@ -19,7 +19,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [expandedRigs, setExpandedRigs] = useState<string[]>(userRig ? [userRig] : []);
   const [showContact, setShowContact] = useState(false);
 
-  // Add Employee State
   const [isAdding, setIsAdding] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
@@ -27,7 +26,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2'
   });
 
-  // Edit Employee State
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -42,13 +40,13 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   }, [initialRig]);
 
   const toggleRig = (rig: string) => {
-    setExpandedRigs(prev => 
+    setExpandedRigs(prev =>
       prev.includes(rig) ? prev.filter(r => r !== rig) : [...prev, rig]
     );
   };
 
-  const filtered = employees.filter(e => 
-    e.name.includes(search) || 
+  const filtered = employees.filter(e =>
+    e.name.includes(search) ||
     e.employee_number.includes(search) ||
     (e.position && e.position.toLowerCase().includes(search.toLowerCase()))
   );
@@ -78,7 +76,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
     setAddLoading(false);
     if (insertError) return setAddError(insertError.message);
-    
+
     setIsAdding(false);
     setAddForm({ name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2' });
     onRefresh();
@@ -114,7 +112,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
     setEditLoading(false);
     if (updateError) return setEditError(updateError.message);
-    
+
     setEditingEmployee(null);
     onRefresh();
   };
@@ -132,15 +130,15 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
             className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-3 text-white focus:outline-none focus:border-emerald-500"
           />
         </div>
-        
+
         <div className="flex items-center gap-4 w-full md:w-auto">
           <label className="flex items-center gap-2 cursor-pointer text-sm text-zinc-400 hover:text-zinc-200">
             <input type="checkbox" checked={showContact} onChange={e => setShowContact(e.target.checked)} className="rounded border-zinc-700 bg-zinc-800 text-emerald-500" />
             عرض أرقام الهواتف
           </label>
-          
+
           {isHr && (
-            <button 
+            <button
               onClick={() => setIsAdding(true)}
               className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
             >
@@ -158,7 +156,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
           return (
             <div key={rig} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-              <button 
+              <button
                 onClick={() => toggleRig(rig)}
                 className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
               >
@@ -215,7 +213,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                               )}
                               {isHr && (
                                 <td className="px-6 py-3 text-center">
-                                  <button 
+                                  <button
                                     onClick={() => openEdit(emp)}
                                     className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-emerald-500 rounded transition-colors"
                                   >
@@ -236,7 +234,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         })}
       </div>
 
-      {/* ADD EMPLOYEE MODAL */}
       {isAdding && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <form onSubmit={handleAdd} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
@@ -251,7 +248,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
               <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
               <input type="text" placeholder="الوظيفة" value={addForm.position} onChange={e => setAddForm({...addForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
-              
+
               <select value={addForm.nationality} onChange={e => setAddForm({...addForm, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
                 <option value="" disabled>الجنسية</option>
                 {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
@@ -271,7 +268,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         </div>
       )}
 
-      {/* EDIT EMPLOYEE MODAL */}
       {editingEmployee && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <form onSubmit={handleEdit} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
@@ -312,9 +308,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               </div>
               <div>
                 <label className="text-xs text-zinc-400 mb-1 block">الحالة</label>
-                <select 
-                  value={editForm.is_suspended ? 'true' : 'false'} 
-                  onChange={e => setEditForm({...editForm, is_suspended: e.target.value === 'true'})} 
+                <select
+                  value={editForm.is_suspended ? 'true' : 'false'}
+                  onChange={e => setEditForm({...editForm, is_suspended: e.target.value === 'true'})}
                   className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500"
                 >
                   <option value="false">نشط</option>

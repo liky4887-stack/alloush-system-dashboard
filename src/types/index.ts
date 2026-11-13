@@ -9,11 +9,11 @@ export interface Rig {
 
 export interface Employee {
   id: string;
-  employeeNumber: string;
+  employee_number: string;
   name: string;
   position: string;
   nationality: string;
-  contact: string;
+  phone: string;
   rig: string;
   is_suspended?: boolean;
 }
@@ -31,8 +31,9 @@ export interface CpoRequest {
   route_stops: string[];
   travel_mode: TravelMode;
   flight_ticket_confirmed: boolean;
-  hotel_ticket_confirmed: boolean;
+  hotel_confirmed: boolean;
   status: RequestStatus;
   created_at: string;
   updated_at: string;
+  rig: string;
 }

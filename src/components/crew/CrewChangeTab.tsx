@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Employee, CpoRequest, TravelMode } from '@/types';
-import { LIBYA_DESTINATIONS, INTERNATIONAL_DESTINATIONS, NATIONALITIES, TRAVEL_MODES, GRADES } from '@/data/mock';
+import { LIBYA_DESTINATIONS, INTERNATIONAL_DESTINATIONS, NATIONALITIES, GRADES } from '@/data/mock';
 import { Loader2, Plane, Car, Hotel, CheckCircle2, XCircle, Search, MapPin, Edit2, X } from 'lucide-react';
 
 const uniqueRoute = (nationality: string, destination: string, mode: TravelMode) => {
   if (mode === 'car') return ['الهيب', 'طرابلس', destination];
-  if (nationality === 'ليبي') return ['الهيب', 'طرابلس', destination];
+  if (nationality === 'LIBYA') return ['الهيب', 'طرابلس', destination];
   return ['الهيب', 'طرابلس', 'تونس', destination];
 };
 
-const modeLabel = (mode: string) => mode === 'car' ? 'سيارة' : 'طيران مباشر';
+const modeLabel = (mode: string) => {
+  if (mode === 'car') return 'سيارة';
+  if (mode === 'road_half_fly') return 'نصف الطريق ثم طيران';
+  return 'طيران مباشر';
+};
 
 const statusLabel = (status: string) => {
   if (status === 'pending') return 'قيد الانتظار';
@@ -38,19 +42,19 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
   const [grade, setGrade] = useState('');
   const [nationality, setNationality] = useState('');
   const [destination, setDestination] = useState('');
-  const [travelMode, setTravelMode] = useState<TravelMode>('flight');
+  const [travelMode, setTravelMode] = useState<TravelMode>('fly');
   const [flightConfirmed, setFlightConfirmed] = useState(false);
   const [hotelConfirmed, setHotelConfirmed] = useState(false);
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [editingRequest, setEditingRequest] = useState<CpoRequest | null>(null);
   const [editDestination, setEditDestination] = useState('');
   const [editFlight, setEditFlight] = useState(false);
   const [editHotel, setEditHotel] = useState(false);
 
-  const filteredEmployees = employeeSearch.length >= 2 
+  const filteredEmployees = employeeSearch.length >= 2
     ? employees.filter(e => e.name.includes(employeeSearch) || e.employee_number.includes(employeeSearch))
     : [];
 
@@ -58,7 +62,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
     e.preventDefault();
     if (!selectedEmployee) return setError('يرجى اختيار الموظف');
     if (!destination) return setError('يرجى اختيار الوجهة');
-    
+
     setLoading(true);
     setError('');
 
@@ -73,7 +77,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
       route_stops: route,
       travel_mode: travelMode,
       status: 'pending',
-      rig: isHr ? selectedEmployee.rig : userRig, // Attach rig automatically
+      rig: isHr ? selectedEmployee.rig : userRig,
       flight_ticket_confirmed: flightConfirmed,
       hotel_confirmed: hotelConfirmed
     });
@@ -81,13 +85,12 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
     setLoading(false);
     if (insertError) return setError(insertError.message);
 
-    // Reset form
     setEmployeeSearch('');
     setSelectedEmployee(null);
     setGrade('');
     setNationality('');
     setDestination('');
-    setTravelMode('flight');
+    setTravelMode('fly');
     setFlightConfirmed(false);
     setHotelConfirmed(false);
     onRefresh();
@@ -96,13 +99,12 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
   const handleHrUpdate = async () => {
     if (!editingRequest) return;
     setLoading(true);
-    
+
     const { error: updateError } = await supabase.rpc('hr_update_cpo_request_destination', {
       p_request_id: editingRequest.id,
       p_new_destination: editDestination
     });
 
-    // We also allow HR to update flight/hotel
     if (!updateError) {
       await supabase.from('cpo_requests').update({
         flight_ticket_confirmed: editFlight,
@@ -118,7 +120,6 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
 
   return (
     <div className="space-y-8" dir="rtl">
-      {/* FORM SECTION */}
       <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 p-6">
         <h2 className="text-xl font-bold text-zinc-100 mb-6 flex items-center gap-2">
           <Plane className="text-emerald-500" />
@@ -128,7 +129,6 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
         {error && <div className="bg-red-900/20 text-red-400 p-3 rounded-lg mb-4 text-sm">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Employee Search */}
           <div className="relative">
             <Search className="absolute right-3 top-3 text-zinc-500" size={18} />
             <input
@@ -149,7 +149,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
                     onClick={() => {
                       setSelectedEmployee(emp);
                       setEmployeeSearch(emp.name);
-                      setGrade(emp.grade || '');
+                      setGrade(emp.position || '');
                       setNationality(emp.nationality || '');
                     }}
                     className="p-3 hover:bg-zinc-700 cursor-pointer border-b border-zinc-700/50 last:border-0"
@@ -182,12 +182,12 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
             </select>
 
             <select value={travelMode} onChange={e => setTravelMode(e.target.value as TravelMode)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
-              <option value="flight">طيران مباشر</option>
+              <option value="fly">طيران مباشر</option>
+              <option value="road_half_fly">نصف الطريق ثم طيران</option>
               <option value="car">سيارة</option>
             </select>
           </div>
 
-          {/* HR ONLY SECTION */}
           {isHr && destination && (
             <div className="space-y-4 pt-2 border-t border-zinc-800 mt-4">
               <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700/50">
@@ -228,10 +228,9 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
         </form>
       </div>
 
-      {/* REQUESTS LIST SECTION */}
       <div className="space-y-4">
         <h3 className="text-lg font-bold text-zinc-100">الطلبات ({requests.length})</h3>
-        
+
         {requests.length === 0 ? (
           <div className="text-center text-zinc-500 py-8">لا توجد طلبات حالياً</div>
         ) : (
@@ -253,10 +252,10 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
                       {statusLabel(req.status)}
                     </div>
                     {isHr && (
-                      <button 
+                      <button
                         onClick={() => {
                           setEditingRequest(req);
-                          setEditDestination(req.route_stops[req.route_stops.length - 1] || '');
+                          setEditDestination(req.final_destination || req.route_stops[req.route_stops.length - 1] || '');
                           setEditFlight(req.flight_ticket_confirmed || false);
                           setEditHotel(req.hotel_confirmed || false);
                         }}
@@ -284,7 +283,6 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
         )}
       </div>
 
-      {/* HR EDIT MODAL */}
       {editingRequest && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <div className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
