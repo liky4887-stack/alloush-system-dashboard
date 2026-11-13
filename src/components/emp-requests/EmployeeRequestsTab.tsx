@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { EmployeeRequest } from '@/types';
-import { Loader2, CheckCircle2, XCircle, Clock, Check, X } from 'lucide-react';
+import { EmployeeRequest, Employee } from '@/types';
+import { Loader2, CheckCircle2, XCircle, Clock, Check, X, UserPlus } from 'lucide-react';
+import { NATIONALITIES } from '@/data/mock';
+
+const ALL_RIGS = ['B2', 'B3', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'LAHEEB', 'UNASSIGNED'];
 
 export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees }: { isHr: boolean, userRig: string | null, onRefreshEmployees: () => void }) {
   const [requests, setRequests] = useState<EmployeeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // HR Direct Add State
+  const [isAdding, setIsAdding] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [addForm, setAddForm] = useState({ name: '', employee_number: '', position: '', nationality: '', rig: 'B2' });
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -25,14 +33,8 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
 
   const handleApprove = async (req: EmployeeRequest) => {
     setActionLoading(req.id);
-    
-    // 1. Insert into main employees table
     const { error: insertError } = await supabase.from('employees').insert({
-      name: req.name,
-      employee_number: req.employee_number,
-      position: req.position,
-      nationality: req.nationality,
-      rig: req.rig
+      name: req.name, employee_number: req.employee_number, position: req.position, nationality: req.nationality, rig: req.rig
     });
 
     if (insertError) {
@@ -41,12 +43,10 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
       return;
     }
 
-    // 2. Mark request as approved
     await supabase.from('employee_requests').update({ status: 'approved' }).eq('id', req.id);
-    
     setActionLoading(null);
     fetchRequests();
-    onRefreshEmployees(); // refresh the main employee list
+    onRefreshEmployees();
   };
 
   const handleDeny = async (id: string) => {
@@ -56,10 +56,28 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
     fetchRequests();
   };
 
+  const handleDirectAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddLoading(true);
+    const { error } = await supabase.from('employees').insert({
+      name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: addForm.nationality, rig: addForm.rig
+    });
+    setAddLoading(false);
+    if (error) return alert(error.message);
+    setIsAdding(false);
+    setAddForm({ name: '', employee_number: '', position: '', nationality: '', rig: 'B2' });
+    onRefreshEmployees();
+  };
+
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-white">طلبات إضافة موظفين</h2>
+        {isHr && (
+          <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <UserPlus size={16} /> إضافة موظف مباشرة
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -97,6 +115,33 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* HR Direct Add Employee Modal */}
+      {isAdding && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <form onSubmit={handleDirectAdd} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white">إضافة موظف مباشرة</h3>
+              <button type="button" onClick={() => setIsAdding(false)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+            </div>
+            <div className="space-y-3">
+              <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              <input type="text" placeholder="الوظيفة" value={addForm.position} onChange={e => setAddForm({...addForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              <select value={addForm.nationality} onChange={e => setAddForm({...addForm, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
+                <option value="" disabled>الجنسية</option>
+                {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <select value={addForm.rig} onChange={e => setAddForm({...addForm, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
+                {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
+              </select>
+            </div>
+            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+              {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
+            </button>
+          </form>
         </div>
       )}
     </div>

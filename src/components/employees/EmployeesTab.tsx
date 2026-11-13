@@ -28,11 +28,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2'
   });
 
+  // Request Add Employee State
   const [isAddingReq, setIsAddingReq] = useState(false);
   const [addReqLoading, setAddReqLoading] = useState(false);
   const [addReqForm, setAddReqForm] = useState({
     name: '', employee_number: '', position: '', nationality: ''
   });
+  const [allDbEmployees, setAllDbEmployees] = useState<Employee[]>([]);
+  const [searchReq, setSearchReq] = useState('');
 
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -55,6 +58,15 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       setExpandedRigs(prev => [...prev, initialRig]);
     }
   }, [initialRig]);
+
+  // Fetch all employees for the supervisor's search modal
+  useEffect(() => {
+    if (isAddingReq) {
+      supabase.from('employees').select('*').then(({ data }) => {
+        if (data) setAllDbEmployees(data as Employee[]);
+      });
+    }
+  }, [isAddingReq]);
 
   const toggleRig = (rig: string) => {
     setExpandedRigs(prev => prev.includes(rig) ? prev.filter(r => r !== rig) : [...prev, rig]);
@@ -101,6 +113,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       alert("تم إرسال طلب إضافة الموظف إلى الموارد البشرية.");
       setIsAddingReq(false);
       setAddReqForm({ name: '', employee_number: '', position: '', nationality: '' });
+      setSearchReq('');
     }
   };
 
@@ -281,7 +294,47 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <h3 className="text-lg font-bold text-white">طلب إضافة موظف إلى {userRig}</h3>
               <button type="button" onClick={() => setIsAddingReq(false)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
             </div>
-            <div className="space-y-3">
+
+            {/* Search Bar for Existing Employees */}
+            <div className="relative pb-2">
+              <label className="text-xs text-blue-400 mb-1 block">ابحث عن موظف موجود (لتعبئة البيانات تلقائياً)</label>
+              <input
+                type="text"
+                placeholder="ابحث بالاسم أو الرقم..."
+                value={searchReq}
+                onChange={e => setSearchReq(e.target.value)}
+                className="w-full bg-zinc-800 border border-blue-900/50 rounded-lg py-2 px-3 text-white focus:border-blue-500"
+              />
+              {searchReq.length >= 2 && (
+                <div className="absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
+                  {allDbEmployees
+                    .filter(e => e.name.includes(searchReq) || e.employee_number.includes(searchReq))
+                    .map(emp => (
+                      <div
+                        key={emp.id}
+                        onClick={() => {
+                          setAddReqForm({
+                            name: emp.name,
+                            employee_number: emp.employee_number,
+                            position: emp.position || '',
+                            nationality: emp.nationality || ''
+                          });
+                          setSearchReq('');
+                        }}
+                        className="p-2 hover:bg-zinc-700 cursor-pointer text-sm text-zinc-200 border-b border-zinc-700/50 last:border-0"
+                      >
+                        {emp.name} - {emp.employee_number} ({emp.rig})
+                      </div>
+                    ))}
+                  {allDbEmployees.filter(e => e.name.includes(searchReq) || e.employee_number.includes(searchReq)).length === 0 && (
+                    <div className="p-2 text-sm text-zinc-500">لا يوجد موظف مطابق. يمكنك كتابة بيانات موظف جديد بالأسفل.</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 border-t border-zinc-800 pt-3">
+              <label className="text-xs text-zinc-400 block">أو أدخل بيانات موظف جديد:</label>
               <input type="text" placeholder="الاسم الكامل" required value={addReqForm.name} onChange={e => setAddReqForm({...addReqForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
               <input type="text" placeholder="الرقم الوظيفي" required value={addReqForm.employee_number} onChange={e => setAddReqForm({...addReqForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
               <input type="text" placeholder="الوظيفة" value={addReqForm.position} onChange={e => setAddReqForm({...addReqForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
