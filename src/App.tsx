@@ -49,8 +49,6 @@ export default function App() {
       if (data.role === 'SUPERVISOR') setActiveTab('crew-change');
       fetchData(data.role, data.rig);
     } else {
-      // If no profile exists (stale session from deleted DB), force sign out
-      console.error("No profile found, signing out.");
       await supabase.auth.signOut();
       setProfile(null);
       setLoading(false);
@@ -85,7 +83,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 text-center">
         <h1 className="text-2xl font-bold text-red-500 mb-4">خطأ في الإعدادات</h1>
-        <p className="text-zinc-400">مفاتيح Supabase غير موجودة. يرجى إضافتها في إعدادات Netlify.</p>
+        <p className="text-zinc-400">مفاتيح Supabase غير موجودة. يرجى إضافتها في إعدادات الاستضافة.</p>
       </div>
     );
   }
