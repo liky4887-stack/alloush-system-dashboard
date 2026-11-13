@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CpoRequest, Employee, Tab } from '@/types';
 import { Users, AlertTriangle, Clock, Search, Edit2, X, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -30,7 +31,6 @@ interface Props {
 export default function OverviewTab({ requests, employees, onRigClick, onNavigate, isHr, onRefresh }: Props) {
   const [search, setSearch] = useState('');
   
-  // Edit Modal State
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -46,7 +46,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
   ALL_RIGS.forEach(rig => { rigStats[rig.id] = { total: 0, suspended: 0 }; });
 
   employees.forEach(emp => {
-    let rig = emp.rig || 'UNASSIGNED'; // Default to UNASSIGNED instead of B2
+    let rig = emp.rig || 'UNASSIGNED';
     if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'LAHEEB' || rig === 'لهيب') { rig = 'LAHEEB'; }
     if (rig.trim() === '') { rig = 'UNASSIGNED'; }
     
@@ -97,32 +97,21 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
 
   return (
     <div className="space-y-8" dir="rtl">
-      {/* Top Stat Cards - Now Clickable */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div 
-          onClick={() => onNavigate('employees')}
-          className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg"
-        >
+        <div onClick={() => onNavigate('employees')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg">
           <div><div className="text-[#a8a19b] text-sm mb-1">إجمالي الموظفين</div><div className="text-3xl font-bold text-[#f4f0ea]">{totalEmployees}</div></div>
           <Users size={32} className="text-[#d4b896]" />
         </div>
-        <div 
-          onClick={() => onNavigate('emp-requests')}
-          className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg"
-        >
+        <div onClick={() => onNavigate('emp-requests')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg">
           <div><div className="text-[#a8a19b] text-sm mb-1">الطلبات المعلقة</div><div className="text-3xl font-bold text-[#f4f0ea]">{totalPending}</div></div>
           <Clock size={32} className="text-amber-500" />
         </div>
-        <div 
-          onClick={() => onNavigate('employees')}
-          className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg"
-        >
+        <div onClick={() => onNavigate('employees')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg">
           <div><div className="text-[#a8a19b] text-sm mb-1">الموظفين الموقوفين</div><div className="text-3xl font-bold text-[#f4f0ea]">{totalSuspended}</div></div>
           <AlertTriangle size={32} className="text-red-500" />
         </div>
       </div>
 
-      {/* Full Employee List with Search */}
       <div className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 shadow-lg">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <h3 className="text-lg font-bold text-[#f4f0ea] flex items-center gap-2">
@@ -130,13 +119,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
           </h3>
           <div className="relative w-full md:w-72">
             <Search className="absolute right-3 top-2.5 text-[#a8a19b]" size={16} />
-            <input 
-              type="text" 
-              placeholder="ابحث بالاسم أو الرقم..." 
-              value={search} 
-              onChange={e => setSearch(e.target.value)} 
-              className="w-full bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pr-9 pl-3 text-sm text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] placeholder-[#a8a19b]" 
-            />
+            <input type="text" placeholder="ابحث بالاسم أو الرقم..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pr-9 pl-3 text-sm text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] placeholder-[#a8a19b]" />
           </div>
         </div>
         
@@ -145,13 +128,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-2">
             {filteredEmployees.map(emp => (
-              <div 
-                key={emp.id} 
-                onClick={() => openEdit(emp)}
-                className={`bg-[#2a241f]/80 border border-[#524a43]/50 p-3 rounded-lg flex justify-between items-center text-sm transition-all ${
-                  isHr ? 'cursor-pointer hover:border-[#d4b896]/60 hover:bg-[#3a332d]' : ''
-                }`}
-              >
+              <div key={emp.id} onClick={() => openEdit(emp)} className={`bg-[#2a241f]/80 border border-[#524a43]/50 p-3 rounded-lg flex justify-between items-center text-sm transition-all ${isHr ? 'cursor-pointer hover:border-[#d4b896]/60 hover:bg-[#3a332d]' : ''}`}>
                 <span className="text-[#f4f0ea] truncate pr-2">{emp.name}</span>
                 <span className="text-[#a8a19b] font-mono bg-[#1C1815] px-2 py-0.5 rounded text-xs shrink-0">{emp.employee_number}</span>
               </div>
@@ -160,22 +137,13 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
         )}
       </div>
 
-      {/* Rig Stats */}
       <div>
         <h3 className="text-lg font-bold text-[#f4f0ea] mb-4">إحصائيات الحفارات</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {ALL_RIGS.map(rig => {
             const isUnassigned = rig.id === 'UNASSIGNED';
             return (
-              <div 
-                key={rig.id} 
-                onClick={() => onRigClick(rig.id)} 
-                className={`border p-4 rounded-xl cursor-pointer transition-all hover:bg-[#4a4038] shadow-lg ${
-                  isUnassigned 
-                    ? 'bg-amber-900/10 border-amber-600/40 hover:border-amber-500/60' 
-                    : 'bg-[#3a332d] border-[#524a43] hover:border-[#d4b896]/50'
-                }`}
-              >
+              <div key={rig.id} onClick={() => onRigClick(rig.id)} className={`border p-4 rounded-xl cursor-pointer transition-all hover:bg-[#4a4038] shadow-lg ${isUnassigned ? 'bg-amber-900/10 border-amber-600/40 hover:border-amber-500/60' : 'bg-[#3a332d] border-[#524a43] hover:border-[#d4b896]/50'}`}>
                 <div className="flex justify-between items-start mb-2">
                   <span className={`font-bold text-lg ${isUnassigned ? 'text-amber-400' : 'text-[#d4b896]'}`}>{rig.label}</span>
                   {isUnassigned ? <AlertTriangle size={20} className="text-amber-500/70" /> : <Users size={20} className="text-[#a8a19b]" />}
@@ -191,9 +159,9 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
         </div>
       </div>
 
-      {/* HR Edit Modal directly inside Overview */}
-      {editingEmployee && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      {/* MODAL VIA PORTAL */}
+      {editingEmployee && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleEdit} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">تعديل بيانات الموظف</h3>
@@ -205,7 +173,6 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الاسم الكامل</label><input type="text" required value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الرقم الوظيفي</label><input type="text" required value={editForm.employee_number} onChange={e => setEditForm({...editForm, employee_number: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الوظيفة</label><input type="text" value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
-              
               <div>
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الجنسية</label>
                 <select value={editForm.nationality} onChange={e => setEditForm({...editForm, nationality: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
@@ -216,14 +183,12 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
                   <input type="text" placeholder="اكتب الجنسية" required value={editForm.customNationality} onChange={e => setEditForm({...editForm, customNationality: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none mt-2" />
                 )}
               </div>
-              
               <div>
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الحفارة / المجموعة</label>
                 <select value={editForm.rig} onChange={e => setEditForm({...editForm, rig: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
                   {ALL_RIGS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
                 </select>
               </div>
-              
               <div>
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الحالة</label>
                 <select value={editForm.is_suspended ? 'true' : 'false'} onChange={e => setEditForm({...editForm, is_suspended: e.target.value === 'true'})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
@@ -237,7 +202,8 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
               {editLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
             </button>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

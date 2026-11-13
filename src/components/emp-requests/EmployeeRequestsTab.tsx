@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import { EmployeeRequest } from '@/types';
 import { Loader2, CheckCircle2, XCircle, Clock, Check, X, UserPlus, Trash2 } from 'lucide-react';
@@ -18,9 +19,7 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
   const fetchRequests = async () => {
     setLoading(true);
     let query = supabase.from('employee_requests').select('*').order('created_at', { ascending: false });
-    if (!isHr && userRig) {
-      query = query.eq('rig', userRig);
-    }
+    if (!isHr && userRig) query = query.eq('rig', userRig);
     const { data } = await query;
     if (data) setRequests(data as EmployeeRequest[]);
     setLoading(false);
@@ -34,23 +33,11 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
     setActionLoading(req.id);
 
     if (req.request_type === 'REMOVE') {
-      // Handle Removal: Set rig to UNASSIGNED
       const { error: updateError } = await supabase.from('employees').update({ rig: 'UNASSIGNED' }).eq('employee_number', req.employee_number);
-      if (updateError) {
-        alert("Error removing employee: " + updateError.message);
-        setActionLoading(null);
-        return;
-      }
+      if (updateError) { alert("Error removing employee: " + updateError.message); setActionLoading(null); return; }
     } else {
-      // Handle Add: Insert into employees table
-      const { error: insertError } = await supabase.from('employees').insert({
-        name: req.name, employee_number: req.employee_number, position: req.position, nationality: req.nationality, rig: req.rig
-      });
-      if (insertError) {
-        alert("Error adding employee: " + insertError.message);
-        setActionLoading(null);
-        return;
-      }
+      const { error: insertError } = await supabase.from('employees').insert({ name: req.name, employee_number: req.employee_number, position: req.position, nationality: req.nationality, rig: req.rig });
+      if (insertError) { alert("Error adding employee: " + insertError.message); setActionLoading(null); return; }
     }
 
     await supabase.from('employee_requests').update({ status: 'approved' }).eq('id', req.id);
@@ -77,12 +64,8 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
   const handleDirectAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddLoading(true);
-    
     const finalNat = addForm.nationality === 'OTHER' ? addForm.customNationality : addForm.nationality;
-
-    const { error } = await supabase.from('employees').insert({
-      name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: finalNat, rig: addForm.rig
-    });
+    const { error } = await supabase.from('employees').insert({ name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: finalNat, rig: addForm.rig });
     setAddLoading(false);
     if (error) return alert(error.message);
     setIsAdding(false);
@@ -119,11 +102,7 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
                   </div>
                   <div className="text-[#a8a19b] text-sm mt-1 font-mono">{req.employee_number} • {req.rig} • {req.position || 'بدون وظيفة'} • {req.nationality || 'بدون جنسية'}</div>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
-                  req.status === 'pending' ? 'bg-amber-900/20 text-amber-500 border-amber-900/30' :
-                  req.status === 'approved' ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30' :
-                  'bg-red-900/20 text-red-400 border-red-900/30'
-                }`}>
+                <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${req.status === 'pending' ? 'bg-amber-900/20 text-amber-500 border-amber-900/30' : req.status === 'approved' ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30' : 'bg-red-900/20 text-red-400 border-red-900/30'}`}>
                   {req.status === 'pending' ? <Clock size={14}/> : req.status === 'approved' ? <CheckCircle2 size={14}/> : <XCircle size={14}/>}
                   {req.status === 'pending' ? 'قيد الانتظار' : req.status === 'approved' ? 'مقبول' : 'مرفوض'}
                 </div>
@@ -140,7 +119,6 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
                 </div>
               )}
 
-              {/* Delete Action for HR on Denied Employee Requests */}
               {isHr && req.status === 'denied' && (
                 <div className="flex flex-wrap gap-2 mt-4 border-t border-[#524a43] pt-4">
                   <button onClick={() => handleDeletePermanent(req.id)} disabled={actionLoading === req.id} className="bg-[#2a241f] hover:bg-[#1C1815] text-[#a8a19b] border border-[#524a43] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
@@ -153,9 +131,9 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
         </div>
       )}
 
-      {/* HR Direct Add Employee Modal */}
-      {isAdding && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      {/* MODAL VIA PORTAL */}
+      {isAdding && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleDirectAdd} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">إضافة موظف مباشرة</h3>
@@ -165,7 +143,6 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
               <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
               <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
               <input type="text" placeholder="الوظيفة" value={addForm.position} onChange={e => setAddForm({...addForm, position: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
-              
               <select value={addForm.nationality} onChange={e => setAddForm({...addForm, nationality: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
                 <option value="" disabled>الجنسية</option>
                 {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
@@ -173,7 +150,6 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
               {addForm.nationality === 'OTHER' && (
                 <input type="text" placeholder="اكتب الجنسية" required value={addForm.customNationality} onChange={e => setAddForm({...addForm, customNationality: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
               )}
-
               <select value={addForm.rig} onChange={e => setAddForm({...addForm, rig: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
                 {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
               </select>
@@ -182,7 +158,8 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
               {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ الموظف'}
             </button>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

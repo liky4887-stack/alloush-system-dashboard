@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Employee } from '@/types';
 import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -24,24 +25,18 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [isAdding, setIsAdding] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
-  const [addForm, setAddForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2'
-  });
+  const [addForm, setAddForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2' });
 
   const [isAddingReq, setIsAddingReq] = useState(false);
   const [addReqLoading, setAddReqLoading] = useState(false);
-  const [addReqForm, setAddReqForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', customNationality: ''
-  });
+  const [addReqForm, setAddReqForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '' });
   const [allDbEmployees, setAllDbEmployees] = useState<Employee[]>([]);
   const [searchReq, setSearchReq] = useState('');
 
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
-  const [editForm, setEditForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false
-  });
+  const [editForm, setEditForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false });
 
   const fetchActiveVacations = async () => {
     const { data } = await supabase.from('vacation_requests').select('employee_number').in('status', ['pending', 'approved']);
@@ -53,9 +48,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   }, []);
 
   useEffect(() => {
-    if (initialRig && !expandedRigs.includes(initialRig)) {
-      setExpandedRigs(prev => [...prev, initialRig]);
-    }
+    if (initialRig && !expandedRigs.includes(initialRig)) setExpandedRigs(prev => [...prev, initialRig]);
   }, [initialRig]);
 
   useEffect(() => {
@@ -66,13 +59,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     }
   }, [isAddingReq]);
 
-  const toggleRig = (rig: string) => {
-    setExpandedRigs(prev => prev.includes(rig) ? prev.filter(r => r !== rig) : [...prev, rig]);
-  };
+  const toggleRig = (rig: string) => setExpandedRigs(prev => prev.includes(rig) ? prev.filter(r => r !== rig) : [...prev, rig]);
 
-  const filtered = employees.filter(e =>
-    e.name.includes(search) || e.employee_number.includes(search) || (e.position && e.position.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = employees.filter(e => e.name.includes(search) || e.employee_number.includes(search) || (e.position && e.position.toLowerCase().includes(search.toLowerCase())));
 
   const grouped = filtered.reduce((acc, emp) => {
     let rig = emp.rig || 'UNASSIGNED';
@@ -83,7 +72,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     return acc;
   }, {} as Record<string, Employee[]>);
 
-  // Separate the unassigned pool from the assigned rigs
   const assignedRigs = ALL_RIGS.filter(rig => rig !== 'UNASSIGNED' && grouped[rig] && grouped[rig].length > 0);
   const unassignedEmployees = grouped['UNASSIGNED'] || [];
 
@@ -91,12 +79,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     e.preventDefault();
     setAddLoading(true);
     setAddError('');
-    
     const finalNat = addForm.nationality === 'OTHER' ? addForm.customNationality : addForm.nationality;
-
-    const { error } = await supabase.from('employees').insert({
-      name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: finalNat, rig: addForm.rig
-    });
+    const { error } = await supabase.from('employees').insert({ name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: finalNat, rig: addForm.rig });
     setAddLoading(false);
     if (error) return setAddError(error.message);
     setIsAdding(false);
@@ -108,13 +92,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     e.preventDefault();
     if (!userRig) return;
     if (!addReqForm.employee_number) return alert("Please search and select an employee first.");
-    
     setAddReqLoading(true);
     const finalNat = addReqForm.nationality === 'OTHER' ? addReqForm.customNationality : addReqForm.nationality;
-
-    const { error } = await supabase.from('employee_requests').insert({
-      name: addReqForm.name, employee_number: addReqForm.employee_number, position: addReqForm.position, nationality: finalNat, rig: userRig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'ADD'
-    });
+    const { error } = await supabase.from('employee_requests').insert({ name: addReqForm.name, employee_number: addReqForm.employee_number, position: addReqForm.position, nationality: finalNat, rig: userRig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'ADD' });
     setAddReqLoading(false);
     if (error) alert(error.message);
     else {
@@ -128,11 +108,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const handleRemoveRequest = async (emp: Employee) => {
     const confirmed = window.confirm(`هل أنت متأكد من طلب إزالة الموظف "${emp.name}" من ${emp.rig}؟\n\nسيتم إرسال الطلب إلى الموارد البشرية للموافقة أو الرفض.`);
     if (!confirmed) return;
-    
-    const { error } = await supabase.from('employee_requests').insert({
-      name: emp.name, employee_number: emp.employee_number, position: emp.position, nationality: emp.nationality, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'REMOVE'
-    });
-    
+    const { error } = await supabase.from('employee_requests').insert({ name: emp.name, employee_number: emp.employee_number, position: emp.position, nationality: emp.nationality, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'REMOVE' });
     if (error) alert("Error: " + error.message);
     else alert("تم إرسال طلب الإزالة إلى الموارد البشرية.");
   };
@@ -149,12 +125,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     if (!editingEmployee) return;
     setEditLoading(true);
     setEditError('');
-
     const finalNat = editForm.nationality === 'OTHER' ? editForm.customNationality : editForm.nationality;
-
-    const { error } = await supabase.from('employees').update({
-      name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: finalNat, rig: editForm.rig, is_suspended: editForm.is_suspended
-    }).eq('id', editingEmployee.id);
+    const { error } = await supabase.from('employees').update({ name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: finalNat, rig: editForm.rig, is_suspended: editForm.is_suspended }).eq('id', editingEmployee.id);
     setEditLoading(false);
     if (error) return setEditError(error.message);
     setEditingEmployee(null);
@@ -163,9 +135,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
   const handleVacationRequest = async (emp: Employee) => {
     setVacationLoading(emp.id);
-    const { error } = await supabase.from('vacation_requests').insert({
-      employee_number: emp.employee_number, employee_name: emp.name, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id,
-    });
+    const { error } = await supabase.from('vacation_requests').insert({ employee_number: emp.employee_number, employee_name: emp.name, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id });
     setVacationLoading(null);
     if (error) alert("Error: " + error.message);
     else {
@@ -177,9 +147,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const handleExportCSV = () => {
     if (!isHr) return;
     const headers = ['Employee Number', 'Name', 'Position', 'Nationality', 'Rig', 'Phone', 'Status'];
-    const rows = employees.map(emp => [
-      emp.employee_number || '', emp.name || '', emp.position || '', emp.nationality || '', emp.rig || '', emp.phone || '', emp.is_suspended ? 'Suspended' : 'Active'
-    ]);
+    const rows = employees.map(emp => [emp.employee_number || '', emp.name || '', emp.position || '', emp.nationality || '', emp.rig || '', emp.phone || '', emp.is_suspended ? 'Suspended' : 'Active']);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -228,24 +196,13 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                       <Edit2 size={16} />
                     </button>
                   )}
-                  <button
-                    onClick={() => handleVacationRequest(emp)}
-                    disabled={vacationLoading === emp.id || hasActiveRequest}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border ${
-                      hasActiveRequest ? 'bg-[#3a332d] text-[#a8a19b] border-[#524a43] cursor-not-allowed' : 'bg-amber-600/20 text-amber-500 border-amber-600/30 hover:bg-amber-600/30'
-                    }`}
-                  >
+                  <button onClick={() => handleVacationRequest(emp)} disabled={vacationLoading === emp.id || hasActiveRequest} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border ${hasActiveRequest ? 'bg-[#3a332d] text-[#a8a19b] border-[#524a43] cursor-not-allowed' : 'bg-amber-600/20 text-amber-500 border-amber-600/30 hover:bg-amber-600/30'}`}>
                     {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
                     {hasActiveRequest ? 'قيد الإجراء' : 'طلب إجازة'}
                   </button>
                   {!isHr && (
-                    <button
-                      onClick={() => handleRemoveRequest(emp)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-900/20 text-red-400 border border-red-900/30 hover:bg-red-900/40 transition-all flex items-center gap-1.5 shadow-sm"
-                      title="طلب إزالة الموظف"
-                    >
-                      <UserMinus size={14} />
-                      إزالة
+                    <button onClick={() => handleRemoveRequest(emp)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-900/20 text-red-400 border border-red-900/30 hover:bg-red-900/40 transition-all flex items-center gap-1.5 shadow-sm" title="طلب إزالة الموظف">
+                      <UserMinus size={14} /> إزالة
                     </button>
                   )}
                 </td>
@@ -276,7 +233,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <button onClick={handleExportCSV} className="bg-[#2a241f] hover:bg-[#1C1815] text-[#d4b896] border border-[#524a43] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 shadow-sm">
                 <Download size={16} /> تصدير CSV
               </button>
-              
               <button onClick={() => setIsAdding(true)} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg text-sm font-bold shadow-md transition-colors flex items-center gap-2">
                 <UserPlus size={16} /> إضافة موظف
               </button>
@@ -296,7 +252,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
           <div className="text-center text-[#a8a19b] py-8 bg-[#2a241f] rounded-xl border border-[#524a43]">لا يوجد موظفين لعرضهم.</div>
         ) : (
           <>
-            {/* Render Assigned Rigs */}
             {assignedRigs.map(rig => {
               const isExpanded = expandedRigs.includes(rig);
               const rigEmployees = grouped[rig] || [];
@@ -322,7 +277,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               );
             })}
 
-            {/* Render Unassigned Pool at the bottom */}
             {unassignedEmployees.length > 0 && (
               <div className="bg-[#2a241f] border-2 border-amber-600/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(217,119,6,0.15)] mt-8">
                 <button onClick={() => toggleRig('UNASSIGNED')} className="w-full px-6 py-4 flex items-center justify-between bg-amber-900/20 hover:bg-amber-900/30 transition-colors">
@@ -351,9 +305,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         )}
       </div>
 
-      {/* HR Add Employee Modal */}
-      {isAdding && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      {/* MODALS VIA PORTAL */}
+      {isAdding && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleAdd} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">إضافة موظف جديد</h3>
@@ -379,57 +333,30 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ الموظف'}
             </button>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Supervisor Request Add Employee Modal */}
-      {isAddingReq && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      {isAddingReq && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleAddRequest} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">طلب إضافة موظف إلى {userRig}</h3>
               <button type="button" onClick={() => setIsAddingReq(false)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
             </div>
-
             <div className="relative pb-2">
               <label className="text-xs text-[#d4b896] mb-1 block font-bold">ابحث عن موظف موجود لتعبئة البيانات</label>
-              <input
-                type="text"
-                placeholder="ابحث بالاسم أو الرقم..."
-                value={searchReq}
-                onChange={e => setSearchReq(e.target.value)}
-                className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none"
-              />
+              <input type="text" placeholder="ابحث بالاسم أو الرقم..." value={searchReq} onChange={e => setSearchReq(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
               {searchReq.length >= 2 && !addReqForm.employee_number && (
                 <div className="absolute z-10 w-full mt-1 bg-[#1C1815] border border-[#524a43] rounded-lg max-h-40 overflow-y-auto shadow-xl">
-                  {allDbEmployees
-                    .filter(e => e.name.includes(searchReq) || e.employee_number.includes(searchReq))
-                    .map(emp => (
-                      <div
-                        key={emp.id}
-                        onClick={() => {
-                          const isCustomNat = emp.nationality && !NATIONALITIES.includes(emp.nationality);
-                          setAddReqForm({
-                            name: emp.name,
-                            employee_number: emp.employee_number,
-                            position: emp.position || '',
-                            nationality: isCustomNat ? 'OTHER' : (emp.nationality || ''),
-                            customNationality: isCustomNat ? (emp.nationality || '') : ''
-                          });
-                          setSearchReq('');
-                        }}
-                        className="p-2.5 hover:bg-[#3a332d] cursor-pointer text-sm text-[#f4f0ea] border-b border-[#524a43]/50 last:border-0 transition-colors"
-                      >
-                        {emp.name} - {emp.employee_number} ({emp.rig})
-                      </div>
-                    ))}
-                  {allDbEmployees.filter(e => e.name.includes(searchReq) || e.employee_number.includes(searchReq)).length === 0 && (
-                    <div className="p-2.5 text-sm text-[#a8a19b]">لا يوجد موظف مطابق.</div>
-                  )}
+                  {allDbEmployees.filter(e => e.name.includes(searchReq) || e.employee_number.includes(searchReq)).map(emp => (
+                    <div key={emp.id} onClick={() => { const isCustomNat = emp.nationality && !NATIONALITIES.includes(emp.nationality); setAddReqForm({ name: emp.name, employee_number: emp.employee_number, position: emp.position || '', nationality: isCustomNat ? 'OTHER' : (emp.nationality || ''), customNationality: isCustomNat ? (emp.nationality || '') : '' }); setSearchReq(''); }} className="p-2.5 hover:bg-[#3a332d] cursor-pointer text-sm text-[#f4f0ea] border-b border-[#524a43]/50 last:border-0 transition-colors">
+                      {emp.name} - {emp.employee_number} ({emp.rig})
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-
             {addReqForm.employee_number && (
               <div className="bg-[#3a332d] border border-[#524a43] p-4 rounded-lg space-y-2 relative shadow-inner">
                 <button type="button" onClick={() => setAddReqForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '' })} className="absolute top-2 left-2 text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={16} /></button>
@@ -437,17 +364,16 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 <div className="text-sm text-[#a8a19b]">{addReqForm.employee_number} • {addReqForm.position} • {addReqForm.nationality}</div>
               </div>
             )}
-
             <button type="submit" disabled={addReqLoading || !addReqForm.employee_number} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md disabled:opacity-50">
               {addReqLoading ? <Loader2 className="animate-spin" size={18} /> : 'إرسال الطلب إلى HR'}
             </button>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* HR Edit Modal */}
-      {editingEmployee && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      {editingEmployee && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleEdit} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">تعديل بيانات الموظف</h3>
@@ -486,7 +412,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               {editLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
             </button>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

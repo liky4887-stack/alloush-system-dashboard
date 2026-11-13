@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import { VacationRequest, Employee, TravelMode } from '@/types';
 import { LIBYA_DESTINATIONS, INTERNATIONAL_DESTINATIONS } from '@/data/mock';
@@ -19,9 +20,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
   const fetchRequests = async () => {
     setLoading(true);
     let query = supabase.from('vacation_requests').select('*').eq('status', tab).order('created_at', { ascending: false });
-    if (!isHr && userRig) {
-      query = query.eq('rig', userRig);
-    }
+    if (!isHr && userRig) query = query.eq('rig', userRig);
     const { data } = await query;
     if (data) setRequests(data as VacationRequest[]);
     setLoading(false);
@@ -89,13 +88,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
     <div className="space-y-6" dir="rtl">
       <div className="flex gap-2 border-b border-[#524a43] pb-2 overflow-x-auto">
         {(['pending', 'approved', 'denied'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${
-              tab === t ? 'bg-[#d4b896] text-[#2a241f] shadow-md' : 'text-[#a8a19b] hover:bg-[#3a332d] hover:text-[#f4f0ea]'
-            }`}
-          >
+          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${tab === t ? 'bg-[#d4b896] text-[#2a241f] shadow-md' : 'text-[#a8a19b] hover:bg-[#3a332d] hover:text-[#f4f0ea]'}`}>
             {t === 'pending' && <Clock size={16} />}
             {t === 'approved' && <CheckCircle2 size={16} />}
             {t === 'denied' && <XCircle size={16} />}
@@ -117,11 +110,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
                   <div className="font-bold text-[#f4f0ea] text-lg">{req.employee_name}</div>
                   <div className="text-[#a8a19b] text-sm font-mono mt-1">{req.employee_number} • {req.rig}</div>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
-                  req.status === 'pending' ? 'bg-amber-900/20 text-amber-500 border-amber-900/30' :
-                  req.status === 'approved' ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30' :
-                  'bg-red-900/20 text-red-400 border-red-900/30'
-                }`}>
+                <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${req.status === 'pending' ? 'bg-amber-900/20 text-amber-500 border-amber-900/30' : req.status === 'approved' ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30' : 'bg-red-900/20 text-red-400 border-red-900/30'}`}>
                   {req.status === 'pending' ? <Clock size={14}/> : req.status === 'approved' ? <CheckCircle2 size={14}/> : <XCircle size={14}/>}
                   {req.status === 'pending' ? 'قيد الانتظار' : req.status === 'approved' ? 'مقبولة' : 'مرفوضة'}
                 </div>
@@ -155,7 +144,6 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
                 </div>
               )}
 
-              {/* Delete Action for HR on Denied Vacations */}
               {isHr && req.status === 'denied' && (
                 <div className="flex flex-wrap gap-2 mt-4 border-t border-[#524a43] pt-4">
                   <button onClick={() => handleDeletePermanent(req.id)} disabled={actionLoading === req.id} className="bg-[#2a241f] hover:bg-[#1C1815] text-[#a8a19b] border border-[#524a43] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
@@ -168,8 +156,9 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
         </div>
       )}
 
-      {editingReq && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+      {/* MODAL VIA PORTAL */}
+      {editingReq && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">تفاصيل السفر والموافقة</h3>
@@ -214,7 +203,8 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
