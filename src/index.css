@@ -6,35 +6,34 @@
 
 @layer base {
   :root {
-    --card: #F4EFE4;
-    --ring: #2E2E2E;
-    --input: #D2CBBB;
-    --muted: #CFC8B8;
-    --accent: #E6E4D7;
-    --border: #D2CBBB;
-    --radius: 0.5rem;
-    --chart-1: #F26A4B;
-    --chart-2: #1E1E1E;
-    --chart-3: #5E5A52;
-    --chart-4: #A89F8F;
-    --chart-5: #CFC8B8;
-    --popover: #F4EFE4;
-    --primary: #2E2E2E;
-    --sidebar: #E3DDCF;
-    --font-mono: "JetBrains Mono", monospace;
+    /* H&E Warm Dark Theme */
+    --background: #2a241f;
+    --foreground: #f4f0ea;
+    --card: rgba(58, 51, 45, 0.6);
+    --card-foreground: #f4f0ea;
+    --popover: #3a332d;
+    --popover-foreground: #f4f0ea;
+    --primary: #d4b896;
+    --primary-foreground: #2a241f;
+    --secondary: #4a4038;
+    --secondary-foreground: #f4f0ea;
+    --muted: #3a332d;
+    --muted-foreground: #a8a19b;
+    --accent: #524a43;
+    --accent-foreground: #f4f0ea;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #524a43;
+    --input: #3a332d;
+    --ring: #d4b896;
+    --radius: 0.75rem;
+    --chart-1: #d4b896;
+    --chart-2: #f4f0ea;
+    --chart-3: #a8a19b;
+    --chart-4: #524a43;
+    --chart-5: #3a332d;
     --font-sans: "Inter", sans-serif;
-    --secondary: #D8D2C4;
-    --background: #E9E4D8;
     --font-serif: "Playfair Display", serif;
-    --foreground: #1E1E1E;
-    --destructive: #DC2626;
-    --card-foreground: #1E1E1E;
-    --muted-foreground: #5E5A52;
-    --accent-foreground: #2E2E2E;
-    --popover-foreground: #1E1E1E;
-    --primary-foreground: #E6E4D7;
-    --secondary-foreground: #2E2E2E;
-    --destructive-foreground: #FFFFFF;
   }
 
   html {
@@ -49,10 +48,4 @@
   ::-webkit-scrollbar-track { background: var(--background); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
-}
-
-@layer components {
-  .input-dark {
-    @apply w-full px-4 py-3 rounded-xl border border-border bg-input text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors;
-  }
 }

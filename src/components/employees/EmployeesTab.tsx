@@ -212,7 +212,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                     <div className="bg-zinc-700/50 p-2 rounded-lg text-emerald-500">
                       {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                     </div>
-                    <span className="text-lg font-bold text-zinc-100">{rig === 'LAHEEB' ? 'ساحة اللهيب' : rig === 'UNASSIGNED' ? 'غير محدد' : `حفارة ${rig}`}</span>
+                    <span className="text-lg font-bold text-[#f4f0ea]">{rig === 'LAHEEB' ? 'ساحة اللهيب' : rig === 'UNASSIGNED' ? 'غير محدد' : `حفارة ${rig}`}</span>
                     <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">{rigEmployees.length} موظف</span>
                   </div>
                 </button>

@@ -121,7 +121,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
   return (
     <div className="space-y-8" dir="rtl">
       <div className="bg-card/50 rounded-xl border border-border p-6">
-        <h2 className="text-xl font-bold text-zinc-100 mb-6 flex items-center gap-2">
+        <h2 className="text-xl font-bold text-[#f4f0ea] mb-6 flex items-center gap-2">
           <Plane className="text-emerald-500" />
           طلب كرو تشينج جديد
         </h2>
@@ -229,7 +229,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-lg font-bold text-zinc-100">الطلبات ({requests.length})</h3>
+        <h3 className="text-lg font-bold text-[#f4f0ea]">الطلبات ({requests.length})</h3>
 
         {requests.length === 0 ? (
           <div className="text-center text-zinc-500 py-8">لا توجد طلبات حالياً</div>
@@ -239,7 +239,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
               <div key={req.id} className="bg-card/50 rounded-xl border border-border p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <div className="font-bold text-zinc-100 text-lg">{req.employee_name}</div>
+                    <div className="font-bold text-[#f4f0ea] text-lg">{req.employee_name}</div>
                     <div className="text-muted-foreground text-sm">{req.employee_number} • {req.grade} • {req.nationality}</div>
                   </div>
                   <div className="flex items-center gap-2">

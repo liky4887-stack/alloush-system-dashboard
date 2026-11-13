@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
-import Header from '@/components/Header';
 import TabBar from '@/components/TabBar';
 import OverviewTab from '@/components/overview/OverviewTab';
 import EmployeesTab from '@/components/employees/EmployeesTab';
@@ -10,6 +9,7 @@ import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
 import SignIn1 from '@/components/ui/modern-stunning-sign-in';
 import { GlassReveal21st } from '@/components/ui/liquid-glass-logo-reveal';
 import { glassStyles } from '@/components/ui/adjustable-glass-dashboard';
+import { LogOut } from 'lucide-react';
 import { Tab, CpoRequest, Employee } from '@/types';
 
 export default function App() {
@@ -99,9 +99,9 @@ export default function App() {
       <div className="min-h-screen bg-background flex justify-center items-center">
         <GlassReveal21st 
           className="h-[80vh] w-full max-w-lg" 
-          background="#E9E4D8" 
-          logoColor="#1E1E1E"
-          look="light"
+          background="#2a241f" 
+          logoColor="#f4f0ea"
+          look="dark"
         />
       </div>
     );
@@ -114,7 +114,6 @@ export default function App() {
       className="gw-root" 
       data-theme="dark" 
       style={{
-        // Warm dark brown palette from the screenshot
         '--gw-background': '#2a241f',
         '--gw-surface': '#3a332d',
         '--gw-panel': '#3a332d',
@@ -127,23 +126,10 @@ export default function App() {
         '--gw-saturation': '1.2',
         '--gw-edge': '0.4',
         '--gw-tint': '#4a4038',
-        '--color-foreground': '#f4f0ea',
-        '--color-muted-foreground': '#a8a19b',
-        '--color-border': '#524a43',
-        '--color-background': '#2a241f',
-        '--color-card': '#3a332d',
-        '--color-primary': '#d4b896',
-        '--color-primary-foreground': '#2a241f',
-        '--color-input': '#3a332d',
-        '--color-secondary': '#4a4038',
-        '--color-secondary-foreground': '#f4f0ea',
-        '--color-destructive': '#ef4444',
-        '--color-destructive-foreground': '#ffffff',
       } as React.CSSProperties}
     >
       <style>{glassStyles}</style>
       
-      {/* Background Image */}
       <img 
         className="gw-room" 
         src="https://cdn.21st.dev/assets/mirror/4a/4a0ed73b8ab76bd427aa70ab124329127f3df27cc7f31223a832ed7d28b3dda4.jpg" 
@@ -152,20 +138,28 @@ export default function App() {
       <div className="gw-room-shade" aria-hidden="true" />
       
       <div className="gw-workspace">
-        {/* Topbar */}
         <header className="gw-topbar gw-glass">
           <div className="gw-brand">
             <span className="gw-brand-icon">
-              <span className="font-bold text-sm">H&E</span>
+              <span className="font-bold text-sm text-[#2a241f]">H&E</span>
             </span>
             <strong>H&E Associate</strong>
             <span className="gw-brand-divider" />
             <span className="gw-personal">
-              {isHr ? 'HR Management' : `Rig ${profile.rig} Supervisor`}
+              {isHr ? 'HR Management' : `${profile.rig} Supervisor`}
             </span>
           </div>
           <div className="gw-toolbar">
-            <Header session={session} isHr={isHr} onOpenAuth={() => {}} onSignOut={handleSignOut} />
+            <span className="text-sm text-[#a8a19b] mr-4 hidden sm:inline-block">
+              {session.user.email}
+            </span>
+            <button 
+              onClick={handleSignOut}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-[#f4f0ea] hover:bg-white/10 transition-colors border border-[#524a43]"
+            >
+              <LogOut size={14} />
+              خروج
+            </button>
           </div>
         </header>
 
@@ -174,24 +168,23 @@ export default function App() {
             
             <div className="gw-view-heading">
               <div>
-                <p className="gw-greeting">
+                <p className="gw-greeting text-[#a8a19b]">
                   Welcome back, {isHr ? 'HR Admin' : `${profile.rig} Supervisor`}.
                 </p>
-                <h1>
+                <h1 className="text-[#f4f0ea]">
                   {activeTab === 'overview' ? 'Overview' 
                    : activeTab === 'employees' ? 'Employees'
-                   : activeTab === 'vacations' ? 'Vacations & Requests'
-                   : 'Employee Requests'}
+                   : activeTab === 'vacations' ? 'Vacations'
+                   : 'Requests'}
                 </h1>
               </div>
             </div>
 
-            {/* The Liquid Navbar Switch */}
             <div className="mb-8">
               <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
             </div>
             
-            <div className="gw-view mt-4">
+            <div className="gw-view mt-4 text-[#f4f0ea]">
               {activeTab === 'overview' && isHr && (
                 <OverviewTab
                   requests={requests}
@@ -230,10 +223,10 @@ export default function App() {
               )}
             </div>
 
-            <footer className="gw-footer">
+            <footer className="gw-footer text-[#a8a19b]">
               <span>
-                <i />
-                All figures are live from Supabase
+                <i className="bg-[#d4b896]" />
+                All data is live from Supabase
               </span>
             </footer>
 

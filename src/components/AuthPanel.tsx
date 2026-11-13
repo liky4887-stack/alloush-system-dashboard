@@ -48,8 +48,8 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-      <form onSubmit={handleLogin} className="bg-zinc-900 p-6 rounded-xl border border-zinc-800 w-full max-w-sm space-y-4">
-        <h2 className="text-xl font-bold text-white text-center mb-6">تسجيل الدخول</h2>
+      <form onSubmit={handleLogin} className="bg-[#3a332d] p-6 rounded-xl border border-[#524a43] w-full max-w-sm space-y-4">
+        <h2 className="text-xl font-bold text-[#f4f0ea] text-center mb-6">تسجيل الدخول</h2>
         
         {error && <div className="text-red-400 text-sm text-center bg-red-900/20 p-2 rounded">{error}</div>}
 
@@ -58,7 +58,7 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
           <select
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-10 text-white focus:outline-none focus:border-emerald-500 text-left appearance-none cursor-pointer"
+            className="w-full bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pl-10 pr-10 text-[#f4f0ea] focus:outline-none focus:border-emerald-500 text-left appearance-none cursor-pointer"
             dir="ltr"
           >
             {RIG_OPTIONS.map((opt) => (
@@ -84,7 +84,7 @@ export default function AuthPanel({ onClose }: { onClose: () => void }) {
             placeholder="كلمة المرور"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pl-10 pr-10 text-white focus:outline-none focus:border-emerald-500 text-left"
+            className="w-full bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pl-10 pr-10 text-[#f4f0ea] focus:outline-none focus:border-emerald-500 text-left"
             dir="ltr"
             required
           />
