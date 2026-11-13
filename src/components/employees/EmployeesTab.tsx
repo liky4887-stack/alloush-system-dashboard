@@ -32,7 +32,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editForm, setEditForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', rig: ''
+    name: '', employee_number: '', position: '', nationality: '', rig: '', is_suspended: false
   });
 
   useEffect(() => {
@@ -92,7 +92,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       employee_number: emp.employee_number,
       position: emp.position || '',
       nationality: emp.nationality || '',
-      rig: emp.rig || 'UNASSIGNED'
+      rig: emp.rig || 'UNASSIGNED',
+      is_suspended: emp.is_suspended || false
     });
   };
 
@@ -107,7 +108,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       employee_number: editForm.employee_number,
       position: editForm.position,
       nationality: editForm.nationality,
-      rig: editForm.rig
+      rig: editForm.rig,
+      is_suspended: editForm.is_suspended
     }).eq('id', editingEmployee.id);
 
     setEditLoading(false);
@@ -306,6 +308,17 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                   {ALL_RIGS.map(r => (
                     <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">الحالة</label>
+                <select 
+                  value={editForm.is_suspended ? 'true' : 'false'} 
+                  onChange={e => setEditForm({...editForm, is_suspended: e.target.value === 'true'})} 
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500"
+                >
+                  <option value="false">نشط</option>
+                  <option value="true">موقوف</option>
                 </select>
               </div>
             </div>
