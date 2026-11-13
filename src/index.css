@@ -88,3 +88,16 @@
     @apply w-full px-4 py-3 rounded-xl border border-border bg-input text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors;
   }
 }
+
+/* Global Liquid Glass Button Effect */
+button:not(.nimbus-item) {
+  backdrop-filter: blur(10px) saturate(1.2) brightness(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2) brightness(1.05);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 4px 12px -4px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+button:not(.nimbus-item):hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 6px 16px -4px rgba(0, 0, 0, 0.4);
+}

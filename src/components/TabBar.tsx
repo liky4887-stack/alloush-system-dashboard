@@ -1,3 +1,5 @@
+import { LiquidNavbar, LiquidNavItem } from '@/components/ui/liquid-glass-navbar';
+import { LayoutDashboard, Users, Palmtree, UserPlus, Plane } from 'lucide-react';
 import type { Tab } from '@/types';
 
 interface TabBarProps {
@@ -7,32 +9,26 @@ interface TabBarProps {
 }
 
 export default function TabBar({ active, onChange, isHr }: TabBarProps) {
-  const TABS: { id: Tab; label: string }[] = [
-    ...(isHr ? [{ id: 'overview' as Tab, label: 'نظرة عامة' }] : []),
-    { id: 'employees', label: 'موظفو الحفارات' },
-    { id: 'vacations', label: 'طلبات الإجازات' },
-    { id: 'emp-requests', label: 'طلبات إضافة موظف' },
-    ...(isHr ? [{ id: 'crew-change' as Tab, label: 'طلبات الكرو تشينج' }] : []),
+  const tabItems: { id: Tab; item: LiquidNavItem }[] = [
+    ...(isHr ? [{ id: 'overview' as Tab, item: { label: 'نظرة عامة', icon: <LayoutDashboard size={18} />, fx: 'glow' as const } }] : []),
+    { id: 'employees', item: { label: 'الموظفين', icon: <Users size={18} />, fx: 'pop' as const } },
+    { id: 'vacations', item: { label: 'الإجازات', icon: <Palmtree size={18} />, fx: 'drop' as const } },
+    { id: 'emp-requests', item: { label: 'الطلبات', icon: <UserPlus size={18} />, fx: 'wave' as const } },
+    ...(isHr ? [{ id: 'crew-change' as Tab, item: { label: 'الكرو تشينج', icon: <Plane size={18} />, fx: 'plane' as const } }] : []),
   ];
+
+  const items = tabItems.map(t => t.item);
+  const activeIndex = tabItems.findIndex(t => t.id === active);
 
   return (
     <div className="flex justify-center mb-6 px-4">
-      <div className="inline-flex gap-1 p-1 rounded-xl bg-zinc-800/70 border border-zinc-700/50 backdrop-blur" dir="rtl">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => onChange(t.id)}
-            className={
-              "relative px-5 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap " +
-              (active === t.id
-                ? 'bg-primary text-primary-foreground shadow-lg shadow-emerald-900/50'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50')
-            }
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <LiquidNavbar
+        items={items}
+        active={activeIndex !== -1 ? activeIndex : 0}
+        onChange={(i) => onChange(tabItems[i].id)}
+        tone="light"
+        sound={true}
+      />
     </div>
   );
 }
