@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Employee } from '@/types';
-import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
@@ -25,14 +25,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
   const [addForm, setAddForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2'
+    name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2'
   });
 
-  // Request Add Employee State
+  // Request Add/Remove Employee State
   const [isAddingReq, setIsAddingReq] = useState(false);
   const [addReqLoading, setAddReqLoading] = useState(false);
   const [addReqForm, setAddReqForm] = useState({
-    name: '', employee_number: '', position: '', nationality: ''
+    name: '', employee_number: '', position: '', nationality: '', customNationality: ''
   });
   const [allDbEmployees, setAllDbEmployees] = useState<Employee[]>([]);
   const [searchReq, setSearchReq] = useState('');
@@ -41,7 +41,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editForm, setEditForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', rig: '', is_suspended: false
+    name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false
   });
 
   const fetchActiveVacations = async () => {
@@ -59,7 +59,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     }
   }, [initialRig]);
 
-  // Fetch all employees for the supervisor's search modal
   useEffect(() => {
     if (isAddingReq) {
       supabase.from('employees').select('*').then(({ data }) => {
@@ -90,13 +89,16 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     e.preventDefault();
     setAddLoading(true);
     setAddError('');
+    
+    const finalNat = addForm.nationality === 'OTHER' ? addForm.customNationality : addForm.nationality;
+
     const { error } = await supabase.from('employees').insert({
-      name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: addForm.nationality, rig: addForm.rig
+      name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: finalNat, rig: addForm.rig
     });
     setAddLoading(false);
     if (error) return setAddError(error.message);
     setIsAdding(false);
-    setAddForm({ name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2' });
+    setAddForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2' });
     onRefresh();
   };
 
@@ -104,23 +106,38 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     e.preventDefault();
     if (!userRig) return;
     setAddReqLoading(true);
+    
+    const finalNat = addReqForm.nationality === 'OTHER' ? addReqForm.customNationality : addReqForm.nationality;
+
     const { error } = await supabase.from('employee_requests').insert({
-      name: addReqForm.name, employee_number: addReqForm.employee_number, position: addReqForm.position, nationality: addReqForm.nationality, rig: userRig, requested_by: (await supabase.auth.getUser()).data.user?.id
+      name: addReqForm.name, employee_number: addReqForm.employee_number, position: addReqForm.position, nationality: finalNat, rig: userRig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'ADD'
     });
     setAddReqLoading(false);
     if (error) alert(error.message);
     else {
       alert("تم إرسال طلب إضافة الموظف إلى الموارد البشرية.");
       setIsAddingReq(false);
-      setAddReqForm({ name: '', employee_number: '', position: '', nationality: '' });
+      setAddReqForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '' });
       setSearchReq('');
     }
+  };
+
+  const handleRemoveRequest = async (emp: Employee) => {
+    if (!window.confirm(`هل أنت متأكد من طلب إزالة ${emp.name} من ${emp.rig}؟`)) return;
+    
+    const { error } = await supabase.from('employee_requests').insert({
+      name: emp.name, employee_number: emp.employee_number, position: emp.position, nationality: emp.nationality, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'REMOVE'
+    });
+    
+    if (error) alert("Error: " + error.message);
+    else alert("تم إرسال طلب الإزالة إلى الموارد البشرية.");
   };
 
   const openEdit = (emp: Employee) => {
     setEditingEmployee(emp);
     setEditError('');
-    setEditForm({ name: emp.name, employee_number: emp.employee_number, position: emp.position || '', nationality: emp.nationality || '', rig: emp.rig || 'UNASSIGNED', is_suspended: emp.is_suspended || false });
+    const isCustomNat = emp.nationality && !NATIONALITIES.includes(emp.nationality);
+    setEditForm({ name: emp.name, employee_number: emp.employee_number, position: emp.position || '', nationality: isCustomNat ? 'OTHER' : (emp.nationality || ''), customNationality: isCustomNat ? (emp.nationality || '') : '', rig: emp.rig || 'UNASSIGNED', is_suspended: emp.is_suspended || false });
   };
 
   const handleEdit = async (e: React.FormEvent) => {
@@ -128,8 +145,11 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     if (!editingEmployee) return;
     setEditLoading(true);
     setEditError('');
+
+    const finalNat = editForm.nationality === 'OTHER' ? editForm.customNationality : editForm.nationality;
+
     const { error } = await supabase.from('employees').update({
-      name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: editForm.nationality, rig: editForm.rig, is_suspended: editForm.is_suspended
+      name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: finalNat, rig: editForm.rig, is_suspended: editForm.is_suspended
     }).eq('id', editingEmployee.id);
     setEditLoading(false);
     if (error) return setEditError(error.message);
@@ -243,6 +263,16 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                                     {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
                                     {hasActiveRequest ? 'قيد الإجراء' : 'طلب إجازة'}
                                   </button>
+                                  {!isHr && (
+                                    <button
+                                      onClick={() => handleRemoveRequest(emp)}
+                                      className="px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 bg-red-900/30 text-red-400 hover:bg-red-900/50"
+                                      title="طلب إزالة الموظف من الحفارة"
+                                    >
+                                      <UserMinus size={14} />
+                                      إزالة
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                             );
@@ -275,6 +305,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 <option value="" disabled>الجنسية</option>
                 {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
+              {addForm.nationality === 'OTHER' && (
+                <input type="text" placeholder="اكتب الجنسية" required value={addForm.customNationality} onChange={e => setAddForm({...addForm, customNationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              )}
               <select value={addForm.rig} onChange={e => setAddForm({...addForm, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
                 {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
               </select>
@@ -295,7 +328,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <button type="button" onClick={() => setIsAddingReq(false)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
             </div>
 
-            {/* Search Bar for Existing Employees */}
             <div className="relative pb-2">
               <label className="text-xs text-blue-400 mb-1 block">ابحث عن موظف موجود (لتعبئة البيانات تلقائياً)</label>
               <input
@@ -313,11 +345,13 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                       <div
                         key={emp.id}
                         onClick={() => {
+                          const isCustomNat = emp.nationality && !NATIONALITIES.includes(emp.nationality);
                           setAddReqForm({
                             name: emp.name,
                             employee_number: emp.employee_number,
                             position: emp.position || '',
-                            nationality: emp.nationality || ''
+                            nationality: isCustomNat ? 'OTHER' : (emp.nationality || ''),
+                            customNationality: isCustomNat ? (emp.nationality || '') : ''
                           });
                           setSearchReq('');
                         }}
@@ -342,6 +376,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 <option value="" disabled>الجنسية</option>
                 {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
+              {addReqForm.nationality === 'OTHER' && (
+                <input type="text" placeholder="اكتب الجنسية" required value={addReqForm.customNationality} onChange={e => setAddReqForm({...addReqForm, customNationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
+              )}
             </div>
             <button type="submit" disabled={addReqLoading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {addReqLoading ? <Loader2 className="animate-spin" size={18} /> : 'إرسال الطلب إلى HR'}
@@ -369,6 +406,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                   <option value="" disabled>الجنسية</option>
                   {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
+                {editForm.nationality === 'OTHER' && (
+                  <input type="text" placeholder="اكتب الجنسية" required value={editForm.customNationality} onChange={e => setEditForm({...editForm, customNationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500 mt-2" />
+                )}
               </div>
               <div>
                 <label className="text-xs text-zinc-400 mb-1 block">الحفارة / المجموعة</label>

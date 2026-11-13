@@ -66,6 +66,7 @@ export interface EmployeeRequest {
   rig: string;
   requested_by: string;
   status: EmployeeRequestStatus;
+  request_type: 'ADD' | 'REMOVE';
   created_at: string;
   updated_at: string;
 }
