@@ -15,6 +15,7 @@ const ALL_RIGS = [
   { id: 'B10', label: 'B10' },
   { id: 'B11', label: 'B11' },
   { id: 'LAHEEB', label: 'ساحة اللهيب' },
+  { id: 'UNASSIGNED', label: 'غير محدد' },
 ];
 
 interface Props {
@@ -45,8 +46,10 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
   ALL_RIGS.forEach(rig => { rigStats[rig.id] = { total: 0, suspended: 0 }; });
 
   employees.forEach(emp => {
-    let rig = emp.rig || 'B2';
+    let rig = emp.rig || 'UNASSIGNED'; // Default to UNASSIGNED instead of B2
     if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'LAHEEB' || rig === 'لهيب') { rig = 'LAHEEB'; }
+    if (rig.trim() === '') { rig = 'UNASSIGNED'; }
+    
     if (rigStats[rig]) {
       rigStats[rig].total++;
       if (emp.is_suspended) rigStats[rig].suspended++;
@@ -161,19 +164,30 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
       <div>
         <h3 className="text-lg font-bold text-[#f4f0ea] mb-4">إحصائيات الحفارات</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {ALL_RIGS.map(rig => (
-            <div key={rig.id} onClick={() => onRigClick(rig.id)} className="bg-[#3a332d] border border-[#524a43] p-4 rounded-xl cursor-pointer transition-all hover:border-[#d4b896]/50 hover:bg-[#4a4038] shadow-lg">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-[#d4b896] font-bold text-lg">{rig.label}</span>
-                <Users size={20} className="text-[#a8a19b]" />
+          {ALL_RIGS.map(rig => {
+            const isUnassigned = rig.id === 'UNASSIGNED';
+            return (
+              <div 
+                key={rig.id} 
+                onClick={() => onRigClick(rig.id)} 
+                className={`border p-4 rounded-xl cursor-pointer transition-all hover:bg-[#4a4038] shadow-lg ${
+                  isUnassigned 
+                    ? 'bg-amber-900/10 border-amber-600/40 hover:border-amber-500/60' 
+                    : 'bg-[#3a332d] border-[#524a43] hover:border-[#d4b896]/50'
+                }`}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className={`font-bold text-lg ${isUnassigned ? 'text-amber-400' : 'text-[#d4b896]'}`}>{rig.label}</span>
+                  {isUnassigned ? <AlertTriangle size={20} className="text-amber-500/70" /> : <Users size={20} className="text-[#a8a19b]" />}
+                </div>
+                <div className={`text-2xl font-bold ${isUnassigned ? 'text-amber-400' : 'text-[#f4f0ea]'}`}>{rigStats[rig.id].total}</div>
+                <div className="text-xs text-[#a8a19b]">موظف</div>
+                {rigStats[rig.id].suspended > 0 && (
+                  <div className="flex items-center gap-1 text-red-400 text-xs mt-2"><AlertTriangle size={12} /><span>{rigStats[rig.id].suspended} موقوف</span></div>
+                )}
               </div>
-              <div className="text-2xl font-bold text-[#f4f0ea]">{rigStats[rig.id].total}</div>
-              <div className="text-xs text-[#a8a19b]">موظف</div>
-              {rigStats[rig.id].suspended > 0 && (
-                <div className="flex items-center gap-1 text-red-400 text-xs mt-2"><AlertTriangle size={12} /><span>{rigStats[rig.id].suspended} موقوف</span></div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -207,7 +221,6 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الحفارة / المجموعة</label>
                 <select value={editForm.rig} onChange={e => setEditForm({...editForm, rig: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
                   {ALL_RIGS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                  <option value="UNASSIGNED">غير محدد</option>
                 </select>
               </div>
               
