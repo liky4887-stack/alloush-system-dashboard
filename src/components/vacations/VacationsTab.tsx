@@ -111,7 +111,8 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
                 </div>
               </div>
 
-              {req.status === 'approved' && (
+              {/* FIX: Only show travel details to HR */}
+              {isHr && req.status === 'approved' && (
                 <div className="flex flex-wrap gap-4 text-sm text-zinc-300 bg-zinc-800/40 p-3 rounded-lg mb-4">
                   <div className="flex items-center gap-1.5"><Plane size={16} className="text-emerald-500"/> {req.travel_mode === 'car' ? 'سيارة' : req.travel_mode === 'fly' ? 'طيران' : 'مختلط'}</div>
                   <div className="flex items-center gap-1.5"><MapPin size={16} className="text-emerald-500"/> {req.route_stops?.join(' ← ')}</div>
