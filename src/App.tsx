@@ -97,9 +97,11 @@ export default function App() {
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-background flex justify-center items-center">
+        {/* Changed logoColor to match system dark text */}
         <GlassReveal21st 
           className="h-[80vh] w-full max-w-lg" 
           background="#E9E4D8" 
+          logoColor="#1E1E1E"
           look="light"
         />
       </div>

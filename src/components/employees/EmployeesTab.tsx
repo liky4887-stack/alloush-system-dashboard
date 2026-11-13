@@ -105,8 +105,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const handleAddRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userRig) return;
-    setAddReqLoading(true);
+    if (!addReqForm.employee_number) return alert("Please search and select an employee first.");
     
+    setAddReqLoading(true);
     const finalNat = addReqForm.nationality === 'OTHER' ? addReqForm.customNationality : addReqForm.nationality;
 
     const { error } = await supabase.from('employee_requests').insert({
@@ -123,7 +124,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   };
 
   const handleRemoveRequest = async (emp: Employee) => {
-    if (!window.confirm(`هل أنت متأكد من طلب إزالة ${emp.name} من ${emp.rig}؟`)) return;
+    const confirmed = window.confirm(`هل أنت متأكد من طلب إزالة الموظف "${emp.name}" من ${emp.rig}؟\n\nسيتم إرسال الطلب إلى الموارد البشرية للموافقة أو الرفض.`);
+    if (!confirmed) return;
     
     const { error } = await supabase.from('employee_requests').insert({
       name: emp.name, employee_number: emp.employee_number, position: emp.position, nationality: emp.nationality, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'REMOVE'
@@ -185,11 +187,11 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
           </label>
 
           {isHr ? (
-            <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
               <UserPlus size={16} /> إضافة موظف
             </button>
           ) : (
-            <button onClick={() => setIsAddingReq(true)} className="bg-blue-600 hover:bg-chart-1 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <button onClick={() => setIsAddingReq(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
               <UserPlus size={16} /> طلب إضافة موظف
             </button>
           )}
@@ -257,7 +259,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                                     onClick={() => handleVacationRequest(emp)}
                                     disabled={vacationLoading === emp.id || hasActiveRequest}
                                     className={`px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                                      hasActiveRequest ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700' : 'bg-amber-600 hover:bg-chart-1 text-primary-foreground disabled:opacity-50'
+                                      hasActiveRequest ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700' : 'bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50'
                                     }`}
                                   >
                                     {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
@@ -312,7 +314,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
               </select>
             </div>
-            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-primary text-primary-foreground font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
             </button>
           </form>
@@ -337,7 +339,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 onChange={e => setSearchReq(e.target.value)}
                 className="w-full bg-zinc-800 border border-blue-900/50 rounded-lg py-2 px-3 text-white focus:border-blue-500"
               />
-              {searchReq.length >= 2 && (
+              {searchReq.length >= 2 && !addReqForm.employee_number && (
                 <div className="absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg max-h-40 overflow-y-auto shadow-xl">
                   {allDbEmployees
                     .filter(e => e.name.includes(searchReq) || e.employee_number.includes(searchReq))
@@ -361,26 +363,21 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                       </div>
                     ))}
                   {allDbEmployees.filter(e => e.name.includes(searchReq) || e.employee_number.includes(searchReq)).length === 0 && (
-                    <div className="p-2 text-sm text-zinc-500">لا يوجد موظف مطابق. يمكنك كتابة بيانات موظف جديد بالأسفل.</div>
+                    <div className="p-2 text-sm text-zinc-500">لا يوجد موظف مطابق.</div>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="space-y-3 border-t border-zinc-800 pt-3">
-              <label className="text-xs text-zinc-400 block">أو أدخل بيانات موظف جديد:</label>
-              <input type="text" placeholder="الاسم الكامل" required value={addReqForm.name} onChange={e => setAddReqForm({...addReqForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
-              <input type="text" placeholder="الرقم الوظيفي" required value={addReqForm.employee_number} onChange={e => setAddReqForm({...addReqForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
-              <input type="text" placeholder="الوظيفة" value={addReqForm.position} onChange={e => setAddReqForm({...addReqForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
-              <select value={addReqForm.nationality} onChange={e => setAddReqForm({...addReqForm, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500">
-                <option value="" disabled>الجنسية</option>
-                {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-              {addReqForm.nationality === 'OTHER' && (
-                <input type="text" placeholder="اكتب الجنسية" required value={addReqForm.customNationality} onChange={e => setAddReqForm({...addReqForm, customNationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
-              )}
-            </div>
-            <button type="submit" disabled={addReqLoading} className="w-full bg-blue-600 hover:bg-chart-1 text-primary-foreground font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+            {addReqForm.employee_number && (
+              <div className="bg-zinc-800/50 border border-zinc-700 p-4 rounded-lg space-y-2 relative">
+                <button type="button" onClick={() => setAddReqForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '' })} className="absolute top-2 left-2 text-zinc-500 hover:text-white"><X size={16} /></button>
+                <div className="text-white font-bold text-lg">{addReqForm.name}</div>
+                <div className="text-sm text-zinc-400">{addReqForm.employee_number} • {addReqForm.position} • {addReqForm.nationality}</div>
+              </div>
+            )}
+
+            <button type="submit" disabled={addReqLoading || !addReqForm.employee_number} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 disabled:opacity-50">
               {addReqLoading ? <Loader2 className="animate-spin" size={18} /> : 'إرسال الطلب إلى HR'}
             </button>
           </form>
@@ -424,7 +421,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 </select>
               </div>
             </div>
-            <button type="submit" disabled={editLoading} className="w-full bg-emerald-600 hover:bg-primary text-primary-foreground font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+            <button type="submit" disabled={editLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {editLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
             </button>
           </form>
