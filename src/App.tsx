@@ -139,12 +139,9 @@ export default function App() {
       
       <div className="gw-workspace">
         
-        {/* Fixed Topbar Header */}
+        {/* Fixed Topbar Header (No H&E Box) */}
         <header className="gw-topbar gw-glass flex justify-between items-center px-4 sm:px-6">
           <div className="flex items-center gap-3" dir="ltr">
-            <div className="flex items-center justify-center bg-[#d4b896] text-[#2a241f] w-8 h-8 rounded-md font-bold text-sm shadow-sm">
-              H&E
-            </div>
             <div className="flex flex-col">
               <strong className="text-[#f4f0ea] text-sm font-semibold leading-tight">H&E Associate</strong>
               <span className="text-[#a8a19b] text-xs leading-tight">

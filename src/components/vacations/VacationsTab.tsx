@@ -14,7 +14,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
   const [editTravelMode, setEditTravelMode] = useState<TravelMode>('fly');
   const [editFlight, setEditFlight] = useState(false);
   const [editHotel, setEditHotel] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -32,9 +32,17 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
   }, [tab, isHr, userRig]);
 
   const handleDeny = async (id: string) => {
-    setActionLoading(true);
+    setActionLoading(id);
     await supabase.from('vacation_requests').update({ status: 'denied' }).eq('id', id);
-    setActionLoading(false);
+    setActionLoading(null);
+    fetchRequests();
+  };
+
+  const handleCancel = async (id: string) => {
+    if (!window.confirm("هل أنت متأكد من إلغاء هذا الطلب نهائياً؟")) return;
+    setActionLoading(id);
+    await supabase.from('vacation_requests').delete().eq('id', id);
+    setActionLoading(null);
     fetchRequests();
   };
 
@@ -48,7 +56,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
   const handleApprove = async () => {
     if (!editingReq || !editDestination) return;
-    setActionLoading(true);
+    setActionLoading(editingReq.id);
 
     let route: string[] = [];
     if (editTravelMode === 'car') route = ['الهيب', 'طرابلس', editDestination];
@@ -64,20 +72,20 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
       route_stops: route
     }).eq('id', editingReq.id);
 
-    setActionLoading(false);
+    setActionLoading(null);
     setEditingReq(null);
     fetchRequests();
   };
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex gap-2 border-b border-border pb-2 overflow-x-auto">
+      <div className="flex gap-2 border-b border-[#524a43] pb-2 overflow-x-auto">
         {(['pending', 'approved', 'denied'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${
-              tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+              tab === t ? 'bg-[#d4b896] text-[#2a241f] shadow-md' : 'text-[#a8a19b] hover:bg-[#3a332d] hover:text-[#f4f0ea]'
             }`}
           >
             {t === 'pending' && <Clock size={16} />}
@@ -89,42 +97,48 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-emerald-500" size={32} /></div>
+        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[#d4b896]" size={32} /></div>
       ) : requests.length === 0 ? (
-        <div className="text-center text-zinc-500 py-12">لا توجد طلبات في هذا القسم.</div>
+        <div className="text-center text-[#a8a19b] py-12 bg-[#3a332d] rounded-xl border border-[#524a43]">لا توجد طلبات في هذا القسم.</div>
       ) : (
         <div className="grid gap-4">
           {requests.map((req) => (
-            <div key={req.id} className="bg-card border border-border rounded-xl p-5">
+            <div key={req.id} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-5 shadow-lg">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <div className="font-bold text-foreground text-lg">{req.employee_name}</div>
-                  <div className="text-muted-foreground text-sm font-mono mt-1">{req.employee_number} • {req.rig}</div>
+                  <div className="font-bold text-[#f4f0ea] text-lg">{req.employee_name}</div>
+                  <div className="text-[#a8a19b] text-sm font-mono mt-1">{req.employee_number} • {req.rig}</div>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
-                  req.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
-                  req.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
-                  'bg-red-500/10 text-red-500'
+                <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
+                  req.status === 'pending' ? 'bg-amber-900/20 text-amber-500 border-amber-900/30' :
+                  req.status === 'approved' ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30' :
+                  'bg-red-900/20 text-red-400 border-red-900/30'
                 }`}>
                   {req.status === 'pending' ? <Clock size={14}/> : req.status === 'approved' ? <CheckCircle2 size={14}/> : <XCircle size={14}/>}
                   {req.status === 'pending' ? 'قيد الانتظار' : req.status === 'approved' ? 'مقبولة' : 'مرفوضة'}
                 </div>
               </div>
 
-              {/* FIX: Only show travel details to HR */}
               {isHr && req.status === 'approved' && (
-                <div className="flex flex-wrap gap-4 text-sm text-zinc-300 bg-muted/40 p-3 rounded-lg mb-4">
-                  <div className="flex items-center gap-1.5"><Plane size={16} className="text-emerald-500"/> {req.travel_mode === 'car' ? 'سيارة' : req.travel_mode === 'fly' ? 'طيران' : 'مختلط'}</div>
-                  <div className="flex items-center gap-1.5"><MapPin size={16} className="text-emerald-500"/> {req.route_stops?.join(' ← ')}</div>
-                  <div className="flex items-center gap-1.5"><Plane size={16} className={req.flight_ticket_confirmed ? 'text-emerald-500' : 'text-zinc-500'}/> تذكرة</div>
-                  <div className="flex items-center gap-1.5"><Hotel size={16} className={req.hotel_confirmed ? 'text-emerald-500' : 'text-zinc-500'}/> فندق</div>
+                <div className="flex flex-wrap gap-4 text-sm text-[#f4f0ea] bg-[#2a241f] p-3 rounded-lg mb-4 border border-[#524a43]">
+                  <div className="flex items-center gap-1.5"><Plane size={16} className="text-[#d4b896]"/> {req.travel_mode === 'car' ? 'سيارة' : req.travel_mode === 'fly' ? 'طيران' : 'مختلط'}</div>
+                  <div className="flex items-center gap-1.5"><MapPin size={16} className="text-[#d4b896]"/> {req.route_stops?.join(' ← ')}</div>
+                  <div className="flex items-center gap-1.5"><Plane size={16} className={req.flight_ticket_confirmed ? 'text-[#d4b896]' : 'text-[#a8a19b]'}/> تذكرة</div>
+                  <div className="flex items-center gap-1.5"><Hotel size={16} className={req.hotel_confirmed ? 'text-[#d4b896]' : 'text-[#a8a19b]'}/> فندق</div>
                 </div>
               )}
               
               {isHr && req.status === 'pending' && (
-                <div className="flex gap-2 mt-4 border-t border-border pt-4">
-                  <button onClick={() => openApproveModal(req)} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">قبول وتفصيل السفر</button>
-                  <button onClick={() => handleDeny(req.id)} disabled={actionLoading} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors">رفض الطلب</button>
+                <div className="flex flex-wrap gap-2 mt-4 border-t border-[#524a43] pt-4">
+                  <button onClick={() => openApproveModal(req)} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                    قبول وتفصيل السفر
+                  </button>
+                  <button onClick={() => handleDeny(req.id)} disabled={actionLoading === req.id} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+                    {actionLoading === req.id ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />} رفض الطلب
+                  </button>
+                  <button onClick={() => handleCancel(req.id)} disabled={actionLoading === req.id} className="bg-[#2a241f] hover:bg-[#1C1815] text-[#a8a19b] border border-[#524a43] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+                    <X size={16} /> إلغاء الطلب
+                  </button>
                 </div>
               )}
             </div>
@@ -133,18 +147,18 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
       )}
 
       {editingReq && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-card rounded-xl border border-border w-full max-w-md p-6 space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-foreground">تفاصيل السفر والموافقة</h3>
-              <button onClick={() => setEditingReq(null)} className="text-zinc-500 hover:text-foreground"><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
+              <h3 className="text-lg font-bold text-[#f4f0ea]">تفاصيل السفر والموافقة</h3>
+              <button onClick={() => setEditingReq(null)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
             </div>
 
-            <div className="text-sm text-muted-foreground mb-4">{editingReq.employee_name} ({editingReq.employee_number})</div>
+            <div className="text-sm text-[#a8a19b] mb-4 font-mono">{editingReq.employee_name} ({editingReq.employee_number})</div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">الوجهة النهائية</label>
-              <select value={editDestination} onChange={e => setEditDestination(e.target.value)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
+              <label className="block text-sm font-bold text-[#d4b896] mb-1">الوجهة النهائية</label>
+              <select value={editDestination} onChange={e => setEditDestination(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] appearance-none">
                 <option value="" disabled>اختر الوجهة...</option>
                 <optgroup label="داخل ليبيا">{LIBYA_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}</optgroup>
                 <optgroup label="دولي">{INTERNATIONAL_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}</optgroup>
@@ -152,8 +166,8 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-300 mb-1">طريقة السفر</label>
-              <select value={editTravelMode} onChange={e => setEditTravelMode(e.target.value as TravelMode)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
+              <label className="block text-sm font-bold text-[#d4b896] mb-1">طريقة السفر</label>
+              <select value={editTravelMode} onChange={e => setEditTravelMode(e.target.value as TravelMode)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] appearance-none">
                 <option value="fly">طيران مباشر</option>
                 <option value="road_half_fly">نصف الطريق ثم طيران</option>
                 <option value="car">سيارة</option>
@@ -161,20 +175,20 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
             </div>
 
             <div className="flex gap-6 mt-2">
-              <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-                <input type="checkbox" checked={editFlight} onChange={e => setEditFlight(e.target.checked)} className="w-4 h-4 rounded border-border bg-muted text-emerald-500" />
+              <label className="flex items-center gap-2 cursor-pointer text-[#f4f0ea]">
+                <input type="checkbox" checked={editFlight} onChange={e => setEditFlight(e.target.checked)} className="w-4 h-4 rounded border-[#524a43] bg-[#3a332d] text-[#d4b896] focus:ring-[#d4b896]" />
                 <Plane size={16} /> تأكيد التذكرة
               </label>
-              <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-                <input type="checkbox" checked={editHotel} onChange={e => setEditHotel(e.target.checked)} className="w-4 h-4 rounded border-border bg-muted text-emerald-500" />
+              <label className="flex items-center gap-2 cursor-pointer text-[#f4f0ea]">
+                <input type="checkbox" checked={editHotel} onChange={e => setEditHotel(e.target.checked)} className="w-4 h-4 rounded border-[#524a43] bg-[#3a332d] text-[#d4b896] focus:ring-[#d4b896]" />
                 <Hotel size={16} /> تأكيد الفندق
               </label>
             </div>
 
-            <div className="pt-4 flex justify-end gap-3 mt-4">
-              <button onClick={() => setEditingReq(null)} className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors">إلغاء</button>
-              <button onClick={handleApprove} disabled={actionLoading || !editDestination} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50">
-                {actionLoading ? <Loader2 className="animate-spin" size={16} /> : 'موافقة وحفظ'}
+            <div className="pt-4 flex justify-end gap-3 mt-4 border-t border-[#524a43]">
+              <button onClick={() => setEditingReq(null)} className="px-4 py-2 text-[#a8a19b] hover:text-[#f4f0ea] transition-colors">إلغاء</button>
+              <button onClick={handleApprove} disabled={actionLoading === editingReq.id || !editDestination} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+                {actionLoading === editingReq.id ? <Loader2 className="animate-spin" size={16} /> : 'موافقة وحفظ'}
               </button>
             </div>
           </div>
