@@ -71,13 +71,13 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex gap-2 border-b border-zinc-800 pb-2 overflow-x-auto">
+      <div className="flex gap-2 border-b border-border pb-2 overflow-x-auto">
         {(['pending', 'approved', 'denied'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${
-              tab === t ? 'bg-primary text-primary-foreground' : 'text-zinc-400 hover:bg-zinc-800'
+              tab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
             }`}
           >
             {t === 'pending' && <Clock size={16} />}
@@ -95,11 +95,11 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
       ) : (
         <div className="grid gap-4">
           {requests.map((req) => (
-            <div key={req.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div key={req.id} className="bg-card border border-border rounded-xl p-5">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <div className="font-bold text-white text-lg">{req.employee_name}</div>
-                  <div className="text-zinc-400 text-sm font-mono mt-1">{req.employee_number} • {req.rig}</div>
+                  <div className="font-bold text-foreground text-lg">{req.employee_name}</div>
+                  <div className="text-muted-foreground text-sm font-mono mt-1">{req.employee_number} • {req.rig}</div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
                   req.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
@@ -113,7 +113,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
               {/* FIX: Only show travel details to HR */}
               {isHr && req.status === 'approved' && (
-                <div className="flex flex-wrap gap-4 text-sm text-zinc-300 bg-zinc-800/40 p-3 rounded-lg mb-4">
+                <div className="flex flex-wrap gap-4 text-sm text-zinc-300 bg-muted/40 p-3 rounded-lg mb-4">
                   <div className="flex items-center gap-1.5"><Plane size={16} className="text-emerald-500"/> {req.travel_mode === 'car' ? 'سيارة' : req.travel_mode === 'fly' ? 'طيران' : 'مختلط'}</div>
                   <div className="flex items-center gap-1.5"><MapPin size={16} className="text-emerald-500"/> {req.route_stops?.join(' ← ')}</div>
                   <div className="flex items-center gap-1.5"><Plane size={16} className={req.flight_ticket_confirmed ? 'text-emerald-500' : 'text-zinc-500'}/> تذكرة</div>
@@ -122,7 +122,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
               )}
               
               {isHr && req.status === 'pending' && (
-                <div className="flex gap-2 mt-4 border-t border-zinc-800 pt-4">
+                <div className="flex gap-2 mt-4 border-t border-border pt-4">
                   <button onClick={() => openApproveModal(req)} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">قبول وتفصيل السفر</button>
                   <button onClick={() => handleDeny(req.id)} disabled={actionLoading} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors">رفض الطلب</button>
                 </div>
@@ -134,17 +134,17 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
       {editingReq && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
+          <div className="bg-card rounded-xl border border-border w-full max-w-md p-6 space-y-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">تفاصيل السفر والموافقة</h3>
-              <button onClick={() => setEditingReq(null)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+              <h3 className="text-lg font-bold text-foreground">تفاصيل السفر والموافقة</h3>
+              <button onClick={() => setEditingReq(null)} className="text-zinc-500 hover:text-foreground"><X size={20} /></button>
             </div>
 
-            <div className="text-sm text-zinc-400 mb-4">{editingReq.employee_name} ({editingReq.employee_number})</div>
+            <div className="text-sm text-muted-foreground mb-4">{editingReq.employee_name} ({editingReq.employee_number})</div>
 
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-1">الوجهة النهائية</label>
-              <select value={editDestination} onChange={e => setEditDestination(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
+              <select value={editDestination} onChange={e => setEditDestination(e.target.value)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
                 <option value="" disabled>اختر الوجهة...</option>
                 <optgroup label="داخل ليبيا">{LIBYA_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}</optgroup>
                 <optgroup label="دولي">{INTERNATIONAL_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}</optgroup>
@@ -153,7 +153,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-1">طريقة السفر</label>
-              <select value={editTravelMode} onChange={e => setEditTravelMode(e.target.value as TravelMode)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
+              <select value={editTravelMode} onChange={e => setEditTravelMode(e.target.value as TravelMode)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
                 <option value="fly">طيران مباشر</option>
                 <option value="road_half_fly">نصف الطريق ثم طيران</option>
                 <option value="car">سيارة</option>
@@ -162,17 +162,17 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
             <div className="flex gap-6 mt-2">
               <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-                <input type="checkbox" checked={editFlight} onChange={e => setEditFlight(e.target.checked)} className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500" />
+                <input type="checkbox" checked={editFlight} onChange={e => setEditFlight(e.target.checked)} className="w-4 h-4 rounded border-border bg-muted text-emerald-500" />
                 <Plane size={16} /> تأكيد التذكرة
               </label>
               <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-                <input type="checkbox" checked={editHotel} onChange={e => setEditHotel(e.target.checked)} className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500" />
+                <input type="checkbox" checked={editHotel} onChange={e => setEditHotel(e.target.checked)} className="w-4 h-4 rounded border-border bg-muted text-emerald-500" />
                 <Hotel size={16} /> تأكيد الفندق
               </label>
             </div>
 
             <div className="pt-4 flex justify-end gap-3 mt-4">
-              <button onClick={() => setEditingReq(null)} className="px-4 py-2 text-zinc-400 hover:text-white transition-colors">إلغاء</button>
+              <button onClick={() => setEditingReq(null)} className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors">إلغاء</button>
               <button onClick={handleApprove} disabled={actionLoading || !editDestination} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50">
                 {actionLoading ? <Loader2 className="animate-spin" size={16} /> : 'موافقة وحفظ'}
               </button>

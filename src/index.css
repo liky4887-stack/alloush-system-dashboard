@@ -36,38 +36,6 @@
     --secondary-foreground: #2E2E2E;
     --destructive-foreground: #FFFFFF;
   }
-  
-  .dark {
-    --card: #1C1C1C;
-    --ring: #D1CFC0;
-    --input: #2C2C2C;
-    --muted: #2A2A2A;
-    --accent: #363636;
-    --border: #2C2C2C;
-    --radius: 0.5rem;
-    --chart-1: #F26A4B;
-    --chart-2: #D9CFC2;
-    --chart-3: #8E8A83;
-    --chart-4: #5C5A56;
-    --chart-5: #3B3B3B;
-    --popover: #1C1C1C;
-    --primary: #D1CFC0;
-    --sidebar: #101010;
-    --font-mono: "JetBrains Mono", monospace;
-    --font-sans: "Inter", sans-serif;
-    --secondary: #222222;
-    --background: #141414;
-    --font-serif: "Playfair Display", serif;
-    --foreground: #E8E3DA;
-    --destructive: #EF4444;
-    --card-foreground: #E8E3DA;
-    --muted-foreground: #8E8A83;
-    --accent-foreground: #D1CFC0;
-    --popover-foreground: #E8E3DA;
-    --primary-foreground: #363636;
-    --secondary-foreground: #D1CFC0;
-    --destructive-foreground: #FFFFFF;
-  }
 
   html {
     font-family: var(--font-sans);
@@ -87,17 +55,4 @@
   .input-dark {
     @apply w-full px-4 py-3 rounded-xl border border-border bg-input text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors;
   }
-}
-
-/* Global Liquid Glass Button Effect */
-button:not(.nimbus-item) {
-  backdrop-filter: blur(10px) saturate(1.2) brightness(1.05);
-  -webkit-backdrop-filter: blur(10px) saturate(1.2) brightness(1.05);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 4px 12px -4px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-button:not(.nimbus-item):hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 6px 16px -4px rgba(0, 0, 0, 0.4);
 }

@@ -120,7 +120,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
 
   return (
     <div className="space-y-8" dir="rtl">
-      <div className="bg-zinc-900/50 rounded-xl border border-zinc-800 p-6">
+      <div className="bg-card/50 rounded-xl border border-border p-6">
         <h2 className="text-xl font-bold text-zinc-100 mb-6 flex items-center gap-2">
           <Plane className="text-emerald-500" />
           طلب كرو تشينج جديد
@@ -139,10 +139,10 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
                 setEmployeeSearch(e.target.value);
                 if (selectedEmployee) setSelectedEmployee(null);
               }}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-3 text-white focus:outline-none focus:border-emerald-500"
+              className="w-full bg-muted border border-border rounded-lg py-2 pr-10 pl-3 text-foreground focus:outline-none focus:border-emerald-500"
             />
             {filteredEmployees.length > 0 && !selectedEmployee && (
-              <div className="absolute z-10 w-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-muted border border-border rounded-lg shadow-xl max-h-48 overflow-y-auto">
                 {filteredEmployees.map(emp => (
                   <div
                     key={emp.id}
@@ -152,10 +152,10 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
                       setGrade(emp.position || '');
                       setNationality(emp.nationality || '');
                     }}
-                    className="p-3 hover:bg-zinc-700 cursor-pointer border-b border-zinc-700/50 last:border-0"
+                    className="p-3 hover:bg-zinc-700 cursor-pointer border-b border-border/50 last:border-0"
                   >
-                    <div className="text-white font-medium">{emp.name}</div>
-                    <div className="text-zinc-400 text-sm">{emp.employee_number} - {emp.position}</div>
+                    <div className="text-foreground font-medium">{emp.name}</div>
+                    <div className="text-muted-foreground text-sm">{emp.employee_number} - {emp.position}</div>
                   </div>
                 ))}
               </div>
@@ -163,25 +163,25 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select value={grade} onChange={e => setGrade(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
+            <select value={grade} onChange={e => setGrade(e.target.value)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
               <option value="" disabled>الدرجة الوظيفية</option>
               {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
             </select>
 
-            <select value={nationality} onChange={e => setNationality(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
+            <select value={nationality} onChange={e => setNationality(e.target.value)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
               <option value="" disabled>الجنسية</option>
               {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select value={destination} onChange={e => setDestination(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
+            <select value={destination} onChange={e => setDestination(e.target.value)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
               <option value="" disabled>الوجهة النهائية</option>
               <optgroup label="داخل ليبيا">{LIBYA_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}</optgroup>
               <optgroup label="دولي">{INTERNATIONAL_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}</optgroup>
             </select>
 
-            <select value={travelMode} onChange={e => setTravelMode(e.target.value as TravelMode)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
+            <select value={travelMode} onChange={e => setTravelMode(e.target.value as TravelMode)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
               <option value="fly">طيران مباشر</option>
               <option value="road_half_fly">نصف الطريق ثم طيران</option>
               <option value="car">سيارة</option>
@@ -189,8 +189,8 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
           </div>
 
           {isHr && destination && (
-            <div className="space-y-4 pt-2 border-t border-zinc-800 mt-4">
-              <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700/50">
+            <div className="space-y-4 pt-2 border-t border-border mt-4">
+              <div className="bg-muted/50 p-4 rounded-lg border border-border/50">
                 <div className="text-emerald-500 font-medium mb-3 flex items-center gap-2">
                   <MapPin size={18} />
                   خط سير الإجازة
@@ -198,7 +198,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
                 <div className="flex flex-wrap items-center gap-2" dir="rtl">
                   {uniqueRoute(nationality, destination, travelMode).map((stop, i, arr) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="bg-zinc-700 text-zinc-200 px-3 py-1 rounded-md text-sm">{stop}</span>
+                      <span className="bg-zinc-700 text-foreground px-3 py-1 rounded-md text-sm">{stop}</span>
                       {i < arr.length - 1 && <span className="text-zinc-500 text-sm">←</span>}
                     </div>
                   ))}
@@ -207,13 +207,13 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
 
               <div className="flex gap-6">
                 <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-                  <input type="checkbox" checked={flightConfirmed} onChange={e => setFlightConfirmed(e.target.checked)} className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-zinc-900" />
-                  <Plane size={16} className="text-zinc-400" />
+                  <input type="checkbox" checked={flightConfirmed} onChange={e => setFlightConfirmed(e.target.checked)} className="w-4 h-4 rounded border-border bg-muted text-emerald-500 focus:ring-emerald-500 focus:ring-offset-zinc-900" />
+                  <Plane size={16} className="text-muted-foreground" />
                   تأكيد تذكرة الطيران
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-                  <input type="checkbox" checked={hotelConfirmed} onChange={e => setHotelConfirmed(e.target.checked)} className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-zinc-900" />
-                  <Hotel size={16} className="text-zinc-400" />
+                  <input type="checkbox" checked={hotelConfirmed} onChange={e => setHotelConfirmed(e.target.checked)} className="w-4 h-4 rounded border-border bg-muted text-emerald-500 focus:ring-emerald-500 focus:ring-offset-zinc-900" />
+                  <Hotel size={16} className="text-muted-foreground" />
                   تأكيد حجز الفندق
                 </label>
               </div>
@@ -236,11 +236,11 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
         ) : (
           <div className="grid gap-4">
             {requests.map(req => (
-              <div key={req.id} className="bg-zinc-900/50 rounded-xl border border-zinc-800 p-4">
+              <div key={req.id} className="bg-card/50 rounded-xl border border-border p-4">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <div className="font-bold text-zinc-100 text-lg">{req.employee_name}</div>
-                    <div className="text-zinc-400 text-sm">{req.employee_number} • {req.grade} • {req.nationality}</div>
+                    <div className="text-muted-foreground text-sm">{req.employee_number} • {req.grade} • {req.nationality}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
@@ -259,7 +259,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
                           setEditFlight(req.flight_ticket_confirmed || false);
                           setEditHotel(req.hotel_confirmed || false);
                         }}
-                        className="p-1.5 text-zinc-400 hover:text-emerald-500 bg-zinc-800 rounded-md transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-emerald-500 bg-muted rounded-md transition-colors"
                       >
                         <Edit2 size={16} />
                       </button>
@@ -267,7 +267,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-4 text-sm text-zinc-300 bg-zinc-800/30 p-3 rounded-lg">
+                <div className="flex flex-wrap gap-4 text-sm text-zinc-300 bg-muted/30 p-3 rounded-lg">
                   <div className="flex items-center gap-2">
                     {req.travel_mode === 'car' ? <Car size={16} /> : <Plane size={16} />}
                     {modeLabel(req.travel_mode)}
@@ -285,17 +285,17 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
 
       {editingRequest && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
+          <div className="bg-card rounded-xl border border-border w-full max-w-md p-6 space-y-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">تعديل الطلب (HR)</h3>
-              <button onClick={() => setEditingRequest(null)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+              <h3 className="text-lg font-bold text-foreground">تعديل الطلب (HR)</h3>
+              <button onClick={() => setEditingRequest(null)} className="text-zinc-500 hover:text-foreground"><X size={20} /></button>
             </div>
 
-            <div className="text-sm text-zinc-400 mb-4">{editingRequest.employee_name}</div>
+            <div className="text-sm text-muted-foreground mb-4">{editingRequest.employee_name}</div>
 
             <div>
               <label className="block text-sm font-medium text-zinc-300 mb-1">الوجهة النهائية</label>
-              <select value={editDestination} onChange={e => setEditDestination(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-emerald-500 appearance-none">
+              <select value={editDestination} onChange={e => setEditDestination(e.target.value)} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:outline-none focus:border-emerald-500 appearance-none">
                 <optgroup label="داخل ليبيا">{LIBYA_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}</optgroup>
                 <optgroup label="دولي">{INTERNATIONAL_DESTINATIONS.map(d => <option key={d} value={d}>{d}</option>)}</optgroup>
               </select>
@@ -303,19 +303,19 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
 
             <div className="flex gap-6 mt-2">
               <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-                <input type="checkbox" checked={editFlight} onChange={e => setEditFlight(e.target.checked)} className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500" />
+                <input type="checkbox" checked={editFlight} onChange={e => setEditFlight(e.target.checked)} className="w-4 h-4 rounded border-border bg-muted text-emerald-500" />
                 <Plane size={16} />
                 تأكيد التذكرة
               </label>
               <label className="flex items-center gap-2 cursor-pointer text-zinc-300">
-                <input type="checkbox" checked={editHotel} onChange={e => setEditHotel(e.target.checked)} className="w-4 h-4 rounded border-zinc-700 bg-zinc-800 text-emerald-500" />
+                <input type="checkbox" checked={editHotel} onChange={e => setEditHotel(e.target.checked)} className="w-4 h-4 rounded border-border bg-muted text-emerald-500" />
                 <Hotel size={16} />
                 تأكيد الفندق
               </label>
             </div>
 
             <div className="pt-4 flex justify-end gap-3">
-              <button onClick={() => setEditingRequest(null)} className="px-4 py-2 text-zinc-400 hover:text-white transition-colors">إلغاء</button>
+              <button onClick={() => setEditingRequest(null)} className="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors">إلغاء</button>
               <button onClick={handleHrUpdate} disabled={loading} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
                 {loading ? <Loader2 className="animate-spin" size={16} /> : 'حفظ'}
               </button>
