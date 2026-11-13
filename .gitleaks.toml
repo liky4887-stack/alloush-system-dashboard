@@ -1,0 +1,7 @@
+title = "Alloush System Gitleaks Config"
+
+[allowlist]
+description = "Allowlist for public Supabase publishable keys in workflows"
+paths = [
+  '''.github/workflows/supabase-keepalive.yml'''
+]
