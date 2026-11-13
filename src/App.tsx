@@ -7,6 +7,7 @@ import OverviewTab from '@/components/overview/OverviewTab';
 import CrewChangeTab from '@/components/crew/CrewChangeTab';
 import EmployeesTab from '@/components/employees/EmployeesTab';
 import VacationsTab from '@/components/vacations/VacationsTab';
+import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
 import AuthPanel from '@/components/AuthPanel';
 import { Tab, CpoRequest, Employee } from '@/types';
 
@@ -47,7 +48,7 @@ export default function App() {
 
     if (data) {
       setProfile(data);
-      if (data.role === 'SUPERVISOR') setActiveTab('vacations'); // Default to vacation requests for supervisors
+      if (data.role === 'SUPERVISOR') setActiveTab('vacations');
       fetchData(data.role, data.rig);
     } else {
       await supabase.auth.signOut();
@@ -146,6 +147,14 @@ export default function App() {
             isHr={isHr}
             userRig={profile.rig}
             employees={employees}
+          />
+        )}
+
+        {activeTab === 'emp-requests' && (
+          <EmployeeRequestsTab
+            isHr={isHr}
+            userRig={profile.rig}
+            onRefreshEmployees={() => fetchData(profile.role, profile.rig)}
           />
         )}
       </main>

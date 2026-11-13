@@ -11,6 +11,7 @@ export default function TabBar({ active, onChange, isHr }: TabBarProps) {
     ...(isHr ? [{ id: 'overview' as Tab, label: 'نظرة عامة' }] : []),
     { id: 'employees', label: 'موظفو الحفارات' },
     { id: 'vacations', label: 'طلبات الإجازات' },
+    { id: 'emp-requests', label: 'طلبات إضافة موظف' },
     ...(isHr ? [{ id: 'crew-change' as Tab, label: 'طلبات الكرو تشينج' }] : []),
   ];
 

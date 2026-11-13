@@ -18,8 +18,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [search, setSearch] = useState('');
   const [expandedRigs, setExpandedRigs] = useState<string[]>(userRig ? [userRig] : []);
   const [showContact, setShowContact] = useState(false);
-  
-  // State for tracking active vacation requests
   const [activeVacations, setActiveVacations] = useState<string[]>([]);
   const [vacationLoading, setVacationLoading] = useState<string | null>(null);
 
@@ -30,6 +28,12 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2'
   });
 
+  const [isAddingReq, setIsAddingReq] = useState(false);
+  const [addReqLoading, setAddReqLoading] = useState(false);
+  const [addReqForm, setAddReqForm] = useState({
+    name: '', employee_number: '', position: '', nationality: ''
+  });
+
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
@@ -37,16 +41,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     name: '', employee_number: '', position: '', nationality: '', rig: '', is_suspended: false
   });
 
-  // Fetch active requests so we know which buttons to fade
   const fetchActiveVacations = async () => {
-    const { data } = await supabase
-      .from('vacation_requests')
-      .select('employee_number')
-      .in('status', ['pending', 'approved']);
-      
-    if (data) {
-      setActiveVacations(data.map(r => r.employee_number));
-    }
+    const { data } = await supabase.from('vacation_requests').select('employee_number').in('status', ['pending', 'approved']);
+    if (data) setActiveVacations(data.map(r => r.employee_number));
   };
 
   useEffect(() => {
@@ -60,15 +57,11 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   }, [initialRig]);
 
   const toggleRig = (rig: string) => {
-    setExpandedRigs(prev =>
-      prev.includes(rig) ? prev.filter(r => r !== rig) : [...prev, rig]
-    );
+    setExpandedRigs(prev => prev.includes(rig) ? prev.filter(r => r !== rig) : [...prev, rig]);
   };
 
   const filtered = employees.filter(e =>
-    e.name.includes(search) ||
-    e.employee_number.includes(search) ||
-    (e.position && e.position.toLowerCase().includes(search.toLowerCase()))
+    e.name.includes(search) || e.employee_number.includes(search) || (e.position && e.position.toLowerCase().includes(search.toLowerCase()))
   );
 
   const grouped = filtered.reduce((acc, emp) => {
@@ -85,34 +78,36 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     e.preventDefault();
     setAddLoading(true);
     setAddError('');
-
-    const { error: insertError } = await supabase.from('employees').insert({
-      name: addForm.name,
-      employee_number: addForm.employee_number,
-      position: addForm.position,
-      nationality: addForm.nationality,
-      rig: addForm.rig
+    const { error } = await supabase.from('employees').insert({
+      name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: addForm.nationality, rig: addForm.rig
     });
-
     setAddLoading(false);
-    if (insertError) return setAddError(insertError.message);
-
+    if (error) return setAddError(error.message);
     setIsAdding(false);
     setAddForm({ name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2' });
     onRefresh();
   };
 
+  const handleAddRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userRig) return;
+    setAddReqLoading(true);
+    const { error } = await supabase.from('employee_requests').insert({
+      name: addReqForm.name, employee_number: addReqForm.employee_number, position: addReqForm.position, nationality: addReqForm.nationality, rig: userRig, requested_by: (await supabase.auth.getUser()).data.user?.id
+    });
+    setAddReqLoading(false);
+    if (error) alert(error.message);
+    else {
+      alert("تم إرسال طلب إضافة الموظف إلى الموارد البشرية.");
+      setIsAddingReq(false);
+      setAddReqForm({ name: '', employee_number: '', position: '', nationality: '' });
+    }
+  };
+
   const openEdit = (emp: Employee) => {
     setEditingEmployee(emp);
     setEditError('');
-    setEditForm({
-      name: emp.name,
-      employee_number: emp.employee_number,
-      position: emp.position || '',
-      nationality: emp.nationality || '',
-      rig: emp.rig || 'UNASSIGNED',
-      is_suspended: emp.is_suspended || false
-    });
+    setEditForm({ name: emp.name, employee_number: emp.employee_number, position: emp.position || '', nationality: emp.nationality || '', rig: emp.rig || 'UNASSIGNED', is_suspended: emp.is_suspended || false });
   };
 
   const handleEdit = async (e: React.FormEvent) => {
@@ -120,40 +115,25 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     if (!editingEmployee) return;
     setEditLoading(true);
     setEditError('');
-
-    const { error: updateError } = await supabase.from('employees').update({
-      name: editForm.name,
-      employee_number: editForm.employee_number,
-      position: editForm.position,
-      nationality: editForm.nationality,
-      rig: editForm.rig,
-      is_suspended: editForm.is_suspended
+    const { error } = await supabase.from('employees').update({
+      name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: editForm.nationality, rig: editForm.rig, is_suspended: editForm.is_suspended
     }).eq('id', editingEmployee.id);
-
     setEditLoading(false);
-    if (updateError) return setEditError(updateError.message);
-
+    if (error) return setEditError(error.message);
     setEditingEmployee(null);
     onRefresh();
   };
 
   const handleVacationRequest = async (emp: Employee) => {
-    if (isHr) return; 
     setVacationLoading(emp.id);
-    
     const { error } = await supabase.from('vacation_requests').insert({
-      employee_number: emp.employee_number,
-      employee_name: emp.name,
-      rig: emp.rig,
-      requested_by: (await supabase.auth.getUser()).data.user?.id,
+      employee_number: emp.employee_number, employee_name: emp.name, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id,
     });
-    
     setVacationLoading(null);
-    if (error) {
-      alert("Error: " + error.message);
-    } else {
+    if (error) alert("Error: " + error.message);
+    else {
       alert("تم إرسال طلب الإجازة بنجاح إلى الموارد البشرية.");
-      fetchActiveVacations(); // Refresh the faded states immediately
+      fetchActiveVacations();
     }
   };
 
@@ -162,13 +142,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
         <div className="relative w-full md:w-96">
           <Search className="absolute right-3 top-3 text-zinc-500" size={18} />
-          <input
-            type="text"
-            placeholder="ابحث بالاسم أو الرقم الوظيفي..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-3 text-white focus:outline-none focus:border-emerald-500"
-          />
+          <input type="text" placeholder="ابحث بالاسم أو الرقم الوظيفي..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 pr-10 pl-3 text-white focus:outline-none focus:border-emerald-500" />
         </div>
 
         <div className="flex items-center gap-4 w-full md:w-auto">
@@ -177,13 +151,13 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
             عرض أرقام الهواتف
           </label>
 
-          {isHr && (
-            <button
-              onClick={() => setIsAdding(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-            >
-              <UserPlus size={16} />
-              إضافة موظف
+          {isHr ? (
+            <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+              <UserPlus size={16} /> إضافة موظف
+            </button>
+          ) : (
+            <button onClick={() => setIsAddingReq(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+              <UserPlus size={16} /> طلب إضافة موظف
             </button>
           )}
         </div>
@@ -191,30 +165,20 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
       <div className="space-y-4">
         {sortedRigs.length === 0 ? (
-          <div className="text-center text-zinc-500 py-8 bg-zinc-900/50 rounded-xl border border-zinc-800">
-            لا يوجد موظفين لعرضهم. يرجى استيراد البيانات.
-          </div>
+          <div className="text-center text-zinc-500 py-8 bg-zinc-900/50 rounded-xl border border-zinc-800">لا يوجد موظفين لعرضهم.</div>
         ) : (
           sortedRigs.map(rig => {
             const isExpanded = expandedRigs.includes(rig);
             const rigEmployees = grouped[rig] || [];
-
             return (
               <div key={rig} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                <button
-                  onClick={() => toggleRig(rig)}
-                  className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
-                >
+                <button onClick={() => toggleRig(rig)} className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="bg-zinc-700/50 p-2 rounded-lg text-emerald-500">
                       {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                     </div>
-                    <span className="text-lg font-bold text-zinc-100">
-                      {rig === 'LAHEEB' ? 'ساحة اللهيب' : rig === 'UNASSIGNED' ? 'غير محدد (UNASSIGNED)' : `حفارة ${rig}`}
-                    </span>
-                    <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">
-                      {rigEmployees.length} موظف
-                    </span>
+                    <span className="text-lg font-bold text-zinc-100">{rig === 'LAHEEB' ? 'ساحة اللهيب' : rig === 'UNASSIGNED' ? 'غير محدد' : `حفارة ${rig}`}</span>
+                    <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">{rigEmployees.length} موظف</span>
                   </div>
                 </button>
 
@@ -230,15 +194,12 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                             <th className="px-6 py-3 font-medium">الجنسية</th>
                             <th className="px-6 py-3 font-medium">الحالة</th>
                             {showContact && <th className="px-6 py-3 font-medium">الهاتف</th>}
-                            {isHr && <th className="px-6 py-3 font-medium text-center">تعديل</th>}
-                            {!isHr && <th className="px-6 py-3 font-medium text-center">إجراء</th>}
+                            <th className="px-6 py-3 font-medium text-center">إجراءات</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800/50">
                           {rigEmployees.map(emp => {
-                            // Check if this employee has an active pending/approved request
                             const hasActiveRequest = activeVacations.includes(emp.employee_number);
-
                             return (
                               <tr key={emp.id} className="hover:bg-zinc-800/20">
                                 <td className="px-6 py-3 text-zinc-200">{emp.name}</td>
@@ -246,50 +207,30 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                                 <td className="px-6 py-3 text-zinc-400">{emp.position}</td>
                                 <td className="px-6 py-3 text-zinc-400">{emp.nationality}</td>
                                 <td className="px-6 py-3">
-                                  <div className="flex items-center gap-2">
-                                    {emp.is_suspended ? (
-                                      <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs">موقوف</span>
-                                    ) : (
-                                      <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs">نشط</span>
-                                    )}
-                                  </div>
+                                  {emp.is_suspended ? <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs">موقوف</span> : <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs">نشط</span>}
                                 </td>
                                 {showContact && (
                                   <td className="px-6 py-3 text-zinc-400 font-mono flex items-center gap-2">
-                                    <Phone size={14} className="text-zinc-500" />
-                                    {emp.phone || 'غير مسجل'}
+                                    <Phone size={14} className="text-zinc-500" /> {emp.phone || 'غير مسجل'}
                                   </td>
                                 )}
-                                {isHr && (
-                                  <td className="px-6 py-3 text-center">
-                                    <button
-                                      onClick={() => openEdit(emp)}
-                                      className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-emerald-500 rounded transition-colors"
-                                    >
+                                <td className="px-6 py-3 text-center flex items-center justify-center gap-2">
+                                  {isHr && (
+                                    <button onClick={() => openEdit(emp)} className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-emerald-500 rounded transition-colors" title="تعديل">
                                       <Edit2 size={16} />
                                     </button>
-                                  </td>
-                                )}
-                                {!isHr && (
-                                  <td className="px-6 py-3 text-center">
-                                    <button
-                                      onClick={() => handleVacationRequest(emp)}
-                                      disabled={vacationLoading === emp.id || hasActiveRequest}
-                                      className={`px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 mx-auto ${
-                                        hasActiveRequest 
-                                          ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700' 
-                                          : 'bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50'
-                                      }`}
-                                    >
-                                      {vacationLoading === emp.id ? (
-                                        <Loader2 size={14} className="animate-spin" />
-                                      ) : (
-                                        <Palmtree size={14} />
-                                      )}
-                                      {hasActiveRequest ? 'قيد الإجراء' : 'طلب إجازة'}
-                                    </button>
-                                  </td>
-                                )}
+                                  )}
+                                  <button
+                                    onClick={() => handleVacationRequest(emp)}
+                                    disabled={vacationLoading === emp.id || hasActiveRequest}
+                                    className={`px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
+                                      hasActiveRequest ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700' : 'bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50'
+                                    }`}
+                                  >
+                                    {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
+                                    {hasActiveRequest ? 'قيد الإجراء' : 'طلب إجازة'}
+                                  </button>
+                                </td>
                               </tr>
                             );
                           })}
@@ -304,6 +245,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         )}
       </div>
 
+      {/* HR Add Employee Modal */}
       {isAdding && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <form onSubmit={handleAdd} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
@@ -311,26 +253,19 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <h3 className="text-lg font-bold text-white">إضافة موظف</h3>
               <button type="button" onClick={() => setIsAdding(false)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
             </div>
-
             {addError && <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm">{addError}</div>}
-
             <div className="space-y-3">
               <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
               <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
               <input type="text" placeholder="الوظيفة" value={addForm.position} onChange={e => setAddForm({...addForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
-
               <select value={addForm.nationality} onChange={e => setAddForm({...addForm, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
                 <option value="" disabled>الجنسية</option>
                 {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
-
               <select value={addForm.rig} onChange={e => setAddForm({...addForm, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
-                {ALL_RIGS.map(r => (
-                  <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>
-                ))}
+                {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
               </select>
             </div>
-
             <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
             </button>
@@ -338,6 +273,31 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         </div>
       )}
 
+      {/* Supervisor Request Add Employee Modal */}
+      {isAddingReq && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <form onSubmit={handleAddRequest} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white">طلب إضافة موظف إلى {userRig}</h3>
+              <button type="button" onClick={() => setIsAddingReq(false)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+            </div>
+            <div className="space-y-3">
+              <input type="text" placeholder="الاسم الكامل" required value={addReqForm.name} onChange={e => setAddReqForm({...addReqForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
+              <input type="text" placeholder="الرقم الوظيفي" required value={addReqForm.employee_number} onChange={e => setAddReqForm({...addReqForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
+              <input type="text" placeholder="الوظيفة" value={addReqForm.position} onChange={e => setAddReqForm({...addReqForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
+              <select value={addReqForm.nationality} onChange={e => setAddReqForm({...addReqForm, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500">
+                <option value="" disabled>الجنسية</option>
+                {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <button type="submit" disabled={addReqLoading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+              {addReqLoading ? <Loader2 className="animate-spin" size={18} /> : 'إرسال الطلب إلى HR'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* HR Edit Modal */}
       {editingEmployee && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <form onSubmit={handleEdit} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
@@ -345,22 +305,11 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <h3 className="text-lg font-bold text-white">تعديل بيانات الموظف</h3>
               <button type="button" onClick={() => setEditingEmployee(null)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
             </div>
-
             {editError && <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm">{editError}</div>}
-
             <div className="space-y-3">
-              <div>
-                <label className="text-xs text-zinc-400 mb-1 block">الاسم الكامل</label>
-                <input type="text" required value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-400 mb-1 block">الرقم الوظيفي</label>
-                <input type="text" required value={editForm.employee_number} onChange={e => setEditForm({...editForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-400 mb-1 block">الوظيفة</label>
-                <input type="text" value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
-              </div>
+              <div><label className="text-xs text-zinc-400 mb-1 block">الاسم الكامل</label><input type="text" required value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" /></div>
+              <div><label className="text-xs text-zinc-400 mb-1 block">الرقم الوظيفي</label><input type="text" required value={editForm.employee_number} onChange={e => setEditForm({...editForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" /></div>
+              <div><label className="text-xs text-zinc-400 mb-1 block">الوظيفة</label><input type="text" value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" /></div>
               <div>
                 <label className="text-xs text-zinc-400 mb-1 block">الجنسية</label>
                 <select value={editForm.nationality} onChange={e => setEditForm({...editForm, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
@@ -371,24 +320,17 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <div>
                 <label className="text-xs text-zinc-400 mb-1 block">الحفارة / المجموعة</label>
                 <select value={editForm.rig} onChange={e => setEditForm({...editForm, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
-                  {ALL_RIGS.map(r => (
-                    <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>
-                  ))}
+                  {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-xs text-zinc-400 mb-1 block">الحالة</label>
-                <select
-                  value={editForm.is_suspended ? 'true' : 'false'}
-                  onChange={e => setEditForm({...editForm, is_suspended: e.target.value === 'true'})}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500"
-                >
+                <select value={editForm.is_suspended ? 'true' : 'false'} onChange={e => setEditForm({...editForm, is_suspended: e.target.value === 'true'})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
                   <option value="false">نشط</option>
                   <option value="true">موقوف</option>
                 </select>
               </div>
             </div>
-
             <button type="submit" disabled={editLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {editLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
             </button>
