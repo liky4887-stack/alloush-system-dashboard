@@ -9,6 +9,7 @@ import EmployeesTab from '@/components/employees/EmployeesTab';
 import VacationsTab from '@/components/vacations/VacationsTab';
 import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
 import SignIn1 from '@/components/ui/modern-stunning-sign-in';
+import { GlassReveal21st } from '@/components/ui/liquid-glass-logo-reveal';
 import { Tab, CpoRequest, Employee } from '@/types';
 
 export default function App() {
@@ -93,7 +94,14 @@ export default function App() {
     return <SignIn1 />;
   }
 
-  if (loading || !profile) return <div className="min-h-screen bg-background flex justify-center items-center text-foreground">جاري التحميل...</div>;
+  if (loading || !profile) {
+    return (
+      <div className="min-h-screen bg-background flex justify-center items-center">
+        <GlassReveal21st className="h-[80vh] w-full max-w-lg" />
+      </div>
+    );
+  }
+
   const isHr = profile.role === 'HR';
 
   return (
