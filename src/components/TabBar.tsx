@@ -1,5 +1,5 @@
 import { LiquidNavbar, LiquidNavItem } from '@/components/ui/liquid-glass-navbar';
-import { LayoutDashboard, Users, Palmtree, UserPlus, Plane } from 'lucide-react';
+import { LayoutDashboard, Users, Palmtree, UserPlus } from 'lucide-react';
 import type { Tab } from '@/types';
 
 interface TabBarProps {
@@ -14,7 +14,6 @@ export default function TabBar({ active, onChange, isHr }: TabBarProps) {
     { id: 'employees', item: { label: 'الموظفين', icon: <Users size={18} />, fx: 'pop' as const } },
     { id: 'vacations', item: { label: 'الإجازات', icon: <Palmtree size={18} />, fx: 'drop' as const } },
     { id: 'emp-requests', item: { label: 'الطلبات', icon: <UserPlus size={18} />, fx: 'wave' as const } },
-    ...(isHr ? [{ id: 'crew-change' as Tab, item: { label: 'الكرو تشينج', icon: <Plane size={18} />, fx: 'plane' as const } }] : []),
   ];
 
   const items = tabItems.map(t => t.item);
@@ -26,7 +25,7 @@ export default function TabBar({ active, onChange, isHr }: TabBarProps) {
         items={items}
         active={activeIndex !== -1 ? activeIndex : 0}
         onChange={(i) => onChange(tabItems[i].id)}
-        tone="light"
+        tone="dark"
         sound={true}
       />
     </div>

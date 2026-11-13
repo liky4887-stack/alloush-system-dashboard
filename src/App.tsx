@@ -4,7 +4,6 @@ import { Session } from '@supabase/supabase-js';
 import Header from '@/components/Header';
 import TabBar from '@/components/TabBar';
 import OverviewTab from '@/components/overview/OverviewTab';
-import CrewChangeTab from '@/components/crew/CrewChangeTab';
 import EmployeesTab from '@/components/employees/EmployeesTab';
 import VacationsTab from '@/components/vacations/VacationsTab';
 import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
@@ -113,30 +112,86 @@ export default function App() {
   return (
     <div 
       className="gw-root" 
-      data-theme="light" 
+      data-theme="dark" 
       style={{
-        '--gw-background': '#E9E4D8',
-        '--gw-surface': '#F4EFE4',
-        '--gw-ink': '#1E1E1E',
-        '--gw-muted': '#5E5A52',
-        '--gw-accent': '#F26A4B',
-        '--gw-border': '#D2CBBB',
-        '--gw-blur': '22px',
-        '--gw-opacity': '0.4',
+        // Warm dark brown palette from the screenshot
+        '--gw-background': '#2a241f',
+        '--gw-surface': '#3a332d',
+        '--gw-panel': '#3a332d',
+        '--gw-ink': '#f4f0ea',
+        '--gw-muted': '#a8a19b',
+        '--gw-accent': '#d4b896',
+        '--gw-border': '#524a43',
+        '--gw-blur': '24px',
+        '--gw-opacity': '0.35',
         '--gw-saturation': '1.2',
-        '--gw-edge': '0.6',
-        '--gw-tint': '#F4EFE4',
+        '--gw-edge': '0.4',
+        '--gw-tint': '#4a4038',
+        '--color-foreground': '#f4f0ea',
+        '--color-muted-foreground': '#a8a19b',
+        '--color-border': '#524a43',
+        '--color-background': '#2a241f',
+        '--color-card': '#3a332d',
+        '--color-primary': '#d4b896',
+        '--color-primary-foreground': '#2a241f',
+        '--color-input': '#3a332d',
+        '--color-secondary': '#4a4038',
+        '--color-secondary-foreground': '#f4f0ea',
+        '--color-destructive': '#ef4444',
+        '--color-destructive-foreground': '#ffffff',
       } as React.CSSProperties}
     >
       <style>{glassStyles}</style>
+      
+      {/* Background Image */}
+      <img 
+        className="gw-room" 
+        src="https://cdn.21st.dev/assets/mirror/4a/4a0ed73b8ab76bd427aa70ab124329127f3df27cc7f31223a832ed7d28b3dda4.jpg" 
+        alt="" 
+      />
+      <div className="gw-room-shade" aria-hidden="true" />
+      
       <div className="gw-workspace">
+        {/* Topbar */}
+        <header className="gw-topbar gw-glass">
+          <div className="gw-brand">
+            <span className="gw-brand-icon">
+              <span className="font-bold text-sm">H&E</span>
+            </span>
+            <strong>H&E Associate</strong>
+            <span className="gw-brand-divider" />
+            <span className="gw-personal">
+              {isHr ? 'HR Management' : `Rig ${profile.rig} Supervisor`}
+            </span>
+          </div>
+          <div className="gw-toolbar">
+            <Header session={session} isHr={isHr} onOpenAuth={() => {}} onSignOut={handleSignOut} />
+          </div>
+        </header>
+
         <div className="gw-stage">
           <main className="gw-main gw-glass">
             
-            <Header session={session} isHr={isHr} onOpenAuth={() => {}} onSignOut={handleSignOut} />
-            <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
+            <div className="gw-view-heading">
+              <div>
+                <p className="gw-greeting">
+                  Welcome back, {isHr ? 'HR Admin' : `${profile.rig} Supervisor`}.
+                </p>
+                <h1>
+                  {activeTab === 'overview' ? 'Overview' 
+                   : activeTab === 'employees' ? 'Employees'
+                   : activeTab === 'vacations' ? 'Vacations & Requests'
+                   : 'Employee Requests'}
+                </h1>
+              </div>
+            </div>
+
+            {/* The Liquid Navbar Switch */}
+            <div className="mb-8">
+              <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
+            </div>
             
-            <div className="gw-view mt-8">
+            <div className="gw-view mt-4">
               {activeTab === 'overview' && isHr && (
                 <OverviewTab
                   requests={requests}
@@ -145,16 +200,6 @@ export default function App() {
                     setTargetRig(rig);
                     setActiveTab('employees');
                   }}
-                />
-              )}
-
-              {activeTab === 'crew-change' && isHr && (
-                <CrewChangeTab
-                  requests={requests}
-                  employees={employees}
-                  onRefresh={() => fetchData(profile.role, profile.rig)}
-                  isHr={isHr}
-                  userRig={profile.rig}
                 />
               )}
 
@@ -184,6 +229,13 @@ export default function App() {
                 />
               )}
             </div>
+
+            <footer className="gw-footer">
+              <span>
+                <i />
+                All figures are live from Supabase
+              </span>
+            </footer>
 
           </main>
         </div>
