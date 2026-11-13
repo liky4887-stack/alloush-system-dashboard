@@ -21,3 +21,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+all_employees.csv
+import_all.sql
+make_csv.py
+extract_everything.py
+*.xlsx
