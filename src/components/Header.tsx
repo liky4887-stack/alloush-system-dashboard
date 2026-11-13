@@ -44,11 +44,11 @@ export default function Header({ session, isHr, onOpenAuth, onSignOut }: HeaderP
       </div>
 
       <div className="text-center space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white" dir="rtl">
-          منظومة السيد علوش
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white" dir="ltr">
+          H&E Associate
         </h1>
         <p className="text-sm text-zinc-400 tracking-widest uppercase font-light">
-          Mr. Alloush&apos;s System
+          Management System
         </p>
       </div>
 

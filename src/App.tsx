@@ -93,7 +93,7 @@ export default function App() {
   if (!session) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4">
-        <h1 className="text-3xl font-bold text-emerald-500 mb-6">نظام عالوش</h1>
+        <h1 className="text-3xl font-bold text-emerald-500 mb-6">H&E Associate</h1>
         <button onClick={() => setAuthOpen(true)} className="bg-emerald-600 text-white px-8 py-3 rounded-lg font-bold">
           تسجيل الدخول
         </button>
