@@ -3,30 +3,42 @@
 import * as React from "react";
 import { useState } from "react";
 import { supabase } from '@/lib/supabase';
+import { Eye, EyeOff, ChevronDown } from 'lucide-react';
+
+const RIG_OPTIONS = [
+  { value: 'HR', label: 'HR (الموارد البشرية)' },
+  { value: 'B2', label: 'B2' },
+  { value: 'B3', label: 'B3' },
+  { value: 'B5', label: 'B5' },
+  { value: 'B6', label: 'B6' },
+  { value: 'B7', label: 'B7' },
+  { value: 'B8', label: 'B8' },
+  { value: 'B9', label: 'B9' },
+  { value: 'B10', label: 'B10' },
+  { value: 'B11', label: 'B11' },
+  { value: 'LAHEEB', label: 'ساحة اللهيب' },
+];
 
 const SignIn1 = () => {
-  const [email, setEmail] = React.useState("");
+  const [group, setGroup] = React.useState("HR");
   const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
   const [error, setError] = React.useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
-    if (!email || !password) {
-      setError("Please enter both email and password.");
+    if (!password) {
+      setError("Please enter the password.");
       return;
     }
     
     setError("");
     setLoading(true);
     
-    // Auto-append @alloush.local if they just type "hr" or "b2"
-    let finalEmail = email.trim();
-    if (!finalEmail.includes('@')) {
-      finalEmail = `${finalEmail.toLowerCase()}@alloush.local`;
-    }
+    const email = `${group.toLowerCase()}@alloush.local`;
 
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email: finalEmail,
+      email,
       password,
     });
 
@@ -37,13 +49,10 @@ const SignIn1 = () => {
     }
   };
 
-  // Dynamic title based on input
   const getDisplayTitle = () => {
-    const clean = email.trim().toLowerCase();
-    if (clean === 'hr' || clean === 'hr@alloush.local') return 'HR Management';
-    if (clean === 'laheeb' || clean === 'laheeb@alloush.local') return 'Laheeb Yard Supervisor';
-    if (clean.startsWith('b') && clean.length <= 3) return `Rig ${clean.toUpperCase()} Supervisor`;
-    return 'H&E Associate';
+    if (group === 'HR') return 'HR Management';
+    if (group === 'LAHEEB') return 'Laheeb Yard Supervisor';
+    return `Rig ${group} Supervisor`;
   };
 
   return (
@@ -56,35 +65,56 @@ const SignIn1 = () => {
         </div>
         
         {/* Dynamic Title */}
-        <h2 className="text-2xl font-semibold text-foreground mb-6 text-center transition-all duration-300 h-8">
+        <h2 className="text-2xl font-semibold text-foreground mb-6 text-center transition-all duration-300 h-8 w-full truncate">
           {getDisplayTitle()}
         </h2>
         
         {/* Form */}
-        <div className="flex flex-col w-full gap-4">
-          <div className="w-full flex flex-col gap-3" dir="ltr">
-            <input
-              placeholder="Email or Username (e.g. hr, b2)"
-              type="text"
-              value={email}
-              className="w-full px-5 py-3 rounded-xl bg-input text-foreground placeholder-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <input
-              placeholder="Password"
-              type="password"
-              value={password}
-              className="w-full px-5 py-3 rounded-xl bg-input text-foreground placeholder-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              onChange={(e) => setPassword(e.target.value)}
-            />
+        <div className="flex flex-col w-full gap-4" dir="ltr">
+          <div className="w-full flex flex-col gap-3">
+            
+            {/* Group Selector Dropdown */}
+            <div className="relative">
+              <select
+                value={group}
+                onChange={(e) => setGroup(e.target.value)}
+                className="w-full px-5 py-3 rounded-xl bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+              >
+                {RIG_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-3.5 text-muted-foreground pointer-events-none" size={16} />
+            </div>
+
+            {/* Password Input with Eye Toggle */}
+            <div className="relative">
+              <input
+                placeholder="Password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-5 py-3 rounded-xl bg-input text-foreground placeholder-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary pr-12"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-3 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
             {error && (
-              <div className="text-sm text-destructive text-left w-full" dir="ltr">{error}</div>
+              <div className="text-sm text-destructive text-left w-full px-1" dir="ltr">{error}</div>
             )}
           </div>
           
           <hr className="opacity-10 border-border" />
           
-          <div dir="ltr">
+          <div>
             <button
               onClick={handleSignIn}
               disabled={loading}
