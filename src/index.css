@@ -32,12 +32,12 @@
     --chart-3: #a8a19b;
     --chart-4: #524a43;
     --chart-5: #3a332d;
-    --font-sans: "Inter", sans-serif;
+    --font-sans: 'Thmanyah', 'Inter', sans-serif;
     --font-serif: "Playfair Display", serif;
   }
 
   html {
-    font-family: var(--font-sans);
+    font-family: 'Thmanyah', var(--font-sans);
   }
 
   body {
@@ -48,4 +48,9 @@
   ::-webkit-scrollbar-track { background: var(--background); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+}
+
+/* Force Thmanyah everywhere */
+html, body, button, input, select, textarea, .gw-root {
+  font-family: 'Thmanyah', var(--font-sans) !important;
 }
