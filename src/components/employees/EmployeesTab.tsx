@@ -18,6 +18,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [search, setSearch] = useState('');
   const [expandedRigs, setExpandedRigs] = useState<string[]>(userRig ? [userRig] : []);
   const [showContact, setShowContact] = useState(false);
+  
+  // State for tracking active vacation requests
+  const [activeVacations, setActiveVacations] = useState<string[]>([]);
   const [vacationLoading, setVacationLoading] = useState<string | null>(null);
 
   const [isAdding, setIsAdding] = useState(false);
@@ -33,6 +36,22 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [editForm, setEditForm] = useState({
     name: '', employee_number: '', position: '', nationality: '', rig: '', is_suspended: false
   });
+
+  // Fetch active requests so we know which buttons to fade
+  const fetchActiveVacations = async () => {
+    const { data } = await supabase
+      .from('vacation_requests')
+      .select('employee_number')
+      .in('status', ['pending', 'approved']);
+      
+    if (data) {
+      setActiveVacations(data.map(r => r.employee_number));
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveVacations();
+  }, []);
 
   useEffect(() => {
     if (initialRig && !expandedRigs.includes(initialRig)) {
@@ -60,7 +79,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     return acc;
   }, {} as Record<string, Employee[]>);
 
-  // FIX: Only show rigs that actually have employees in them
   const sortedRigs = ALL_RIGS.filter(rig => grouped[rig] && grouped[rig].length > 0);
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -131,8 +149,12 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     });
     
     setVacationLoading(null);
-    if (error) alert("Error: " + error.message);
-    else alert("تم إرسال طلب الإجازة بنجاح إلى الموارد البشرية.");
+    if (error) {
+      alert("Error: " + error.message);
+    } else {
+      alert("تم إرسال طلب الإجازة بنجاح إلى الموارد البشرية.");
+      fetchActiveVacations(); // Refresh the faded states immediately
+    }
   };
 
   return (
@@ -213,51 +235,64 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800/50">
-                          {rigEmployees.map(emp => (
-                            <tr key={emp.id} className="hover:bg-zinc-800/20">
-                              <td className="px-6 py-3 text-zinc-200">{emp.name}</td>
-                              <td className="px-6 py-3 text-zinc-400 font-mono">{emp.employee_number}</td>
-                              <td className="px-6 py-3 text-zinc-400">{emp.position}</td>
-                              <td className="px-6 py-3 text-zinc-400">{emp.nationality}</td>
-                              <td className="px-6 py-3">
-                                <div className="flex items-center gap-2">
-                                  {emp.is_suspended ? (
-                                    <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs">موقوف</span>
-                                  ) : (
-                                    <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs">نشط</span>
-                                  )}
-                                </div>
-                              </td>
-                              {showContact && (
-                                <td className="px-6 py-3 text-zinc-400 font-mono flex items-center gap-2">
-                                  <Phone size={14} className="text-zinc-500" />
-                                  {emp.phone || 'غير مسجل'}
+                          {rigEmployees.map(emp => {
+                            // Check if this employee has an active pending/approved request
+                            const hasActiveRequest = activeVacations.includes(emp.employee_number);
+
+                            return (
+                              <tr key={emp.id} className="hover:bg-zinc-800/20">
+                                <td className="px-6 py-3 text-zinc-200">{emp.name}</td>
+                                <td className="px-6 py-3 text-zinc-400 font-mono">{emp.employee_number}</td>
+                                <td className="px-6 py-3 text-zinc-400">{emp.position}</td>
+                                <td className="px-6 py-3 text-zinc-400">{emp.nationality}</td>
+                                <td className="px-6 py-3">
+                                  <div className="flex items-center gap-2">
+                                    {emp.is_suspended ? (
+                                      <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs">موقوف</span>
+                                    ) : (
+                                      <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs">نشط</span>
+                                    )}
+                                  </div>
                                 </td>
-                              )}
-                              {isHr && (
-                                <td className="px-6 py-3 text-center">
-                                  <button
-                                    onClick={() => openEdit(emp)}
-                                    className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-emerald-500 rounded transition-colors"
-                                  >
-                                    <Edit2 size={16} />
-                                  </button>
-                                </td>
-                              )}
-                              {!isHr && (
-                                <td className="px-6 py-3 text-center">
-                                  <button
-                                    onClick={() => handleVacationRequest(emp)}
-                                    disabled={vacationLoading === emp.id}
-                                    className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 mx-auto disabled:opacity-50"
-                                  >
-                                    {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
-                                    طلب إجازة
-                                  </button>
-                                </td>
-                              )}
-                            </tr>
-                          ))}
+                                {showContact && (
+                                  <td className="px-6 py-3 text-zinc-400 font-mono flex items-center gap-2">
+                                    <Phone size={14} className="text-zinc-500" />
+                                    {emp.phone || 'غير مسجل'}
+                                  </td>
+                                )}
+                                {isHr && (
+                                  <td className="px-6 py-3 text-center">
+                                    <button
+                                      onClick={() => openEdit(emp)}
+                                      className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-emerald-500 rounded transition-colors"
+                                    >
+                                      <Edit2 size={16} />
+                                    </button>
+                                  </td>
+                                )}
+                                {!isHr && (
+                                  <td className="px-6 py-3 text-center">
+                                    <button
+                                      onClick={() => handleVacationRequest(emp)}
+                                      disabled={vacationLoading === emp.id || hasActiveRequest}
+                                      className={`px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 mx-auto ${
+                                        hasActiveRequest 
+                                          ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700' 
+                                          : 'bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50'
+                                      }`}
+                                    >
+                                      {vacationLoading === emp.id ? (
+                                        <Loader2 size={14} className="animate-spin" />
+                                      ) : (
+                                        <Palmtree size={14} />
+                                      )}
+                                      {hasActiveRequest ? 'قيد الإجراء' : 'طلب إجازة'}
+                                    </button>
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
