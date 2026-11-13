@@ -97,7 +97,11 @@ export default function App() {
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-background flex justify-center items-center">
-        <GlassReveal21st className="h-[80vh] w-full max-w-lg" />
+        <GlassReveal21st 
+          className="h-[80vh] w-full max-w-lg" 
+          background="#E9E4D8" 
+          look="light"
+        />
       </div>
     );
   }
