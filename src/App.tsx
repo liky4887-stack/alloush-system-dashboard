@@ -10,6 +10,7 @@ import VacationsTab from '@/components/vacations/VacationsTab';
 import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
 import SignIn1 from '@/components/ui/modern-stunning-sign-in';
 import { GlassReveal21st } from '@/components/ui/liquid-glass-logo-reveal';
+import { glassStyles } from '@/components/ui/adjustable-glass-dashboard';
 import { Tab, CpoRequest, Employee } from '@/types';
 
 export default function App() {
@@ -97,7 +98,6 @@ export default function App() {
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-background flex justify-center items-center">
-        {/* Changed logoColor to match system dark text */}
         <GlassReveal21st 
           className="h-[80vh] w-full max-w-lg" 
           background="#E9E4D8" 
@@ -111,58 +111,83 @@ export default function App() {
   const isHr = profile.role === 'HR';
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans pb-12">
-      <Header session={session} isHr={isHr} onOpenAuth={() => {}} onSignOut={handleSignOut} />
-      <main className="max-w-5xl mx-auto px-4 mt-6">
-        <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
+    <div 
+      className="gw-root" 
+      data-theme="light" 
+      style={{
+        '--gw-background': '#E9E4D8',
+        '--gw-surface': '#F4EFE4',
+        '--gw-ink': '#1E1E1E',
+        '--gw-muted': '#5E5A52',
+        '--gw-accent': '#F26A4B',
+        '--gw-border': '#D2CBBB',
+        '--gw-blur': '22px',
+        '--gw-opacity': '0.4',
+        '--gw-saturation': '1.2',
+        '--gw-edge': '0.6',
+        '--gw-tint': '#F4EFE4',
+      } as React.CSSProperties}
+    >
+      <style>{glassStyles}</style>
+      <div className="gw-workspace">
+        <div className="gw-stage">
+          <main className="gw-main gw-glass">
+            
+            <Header session={session} isHr={isHr} onOpenAuth={() => {}} onSignOut={handleSignOut} />
+            <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
+            
+            <div className="gw-view mt-8">
+              {activeTab === 'overview' && isHr && (
+                <OverviewTab
+                  requests={requests}
+                  employees={employees}
+                  onRigClick={(rig) => {
+                    setTargetRig(rig);
+                    setActiveTab('employees');
+                  }}
+                />
+              )}
 
-        {activeTab === 'overview' && isHr && (
-          <OverviewTab
-            requests={requests}
-            employees={employees}
-            onRigClick={(rig) => {
-              setTargetRig(rig);
-              setActiveTab('employees');
-            }}
-          />
-        )}
+              {activeTab === 'crew-change' && isHr && (
+                <CrewChangeTab
+                  requests={requests}
+                  employees={employees}
+                  onRefresh={() => fetchData(profile.role, profile.rig)}
+                  isHr={isHr}
+                  userRig={profile.rig}
+                />
+              )}
 
-        {activeTab === 'crew-change' && isHr && (
-          <CrewChangeTab
-            requests={requests}
-            employees={employees}
-            onRefresh={() => fetchData(profile.role, profile.rig)}
-            isHr={isHr}
-            userRig={profile.rig}
-          />
-        )}
+              {activeTab === 'employees' && (
+                <EmployeesTab
+                  employees={employees}
+                  onRefresh={() => fetchData(profile.role, profile.rig)}
+                  isHr={isHr}
+                  userRig={profile.rig}
+                  initialRig={targetRig}
+                />
+              )}
 
-        {activeTab === 'employees' && (
-          <EmployeesTab
-            employees={employees}
-            onRefresh={() => fetchData(profile.role, profile.rig)}
-            isHr={isHr}
-            userRig={profile.rig}
-            initialRig={targetRig}
-          />
-        )}
+              {activeTab === 'vacations' && (
+                <VacationsTab
+                  isHr={isHr}
+                  userRig={profile.rig}
+                  employees={employees}
+                />
+              )}
 
-        {activeTab === 'vacations' && (
-          <VacationsTab
-            isHr={isHr}
-            userRig={profile.rig}
-            employees={employees}
-          />
-        )}
+              {activeTab === 'emp-requests' && (
+                <EmployeeRequestsTab
+                  isHr={isHr}
+                  userRig={profile.rig}
+                  onRefreshEmployees={() => fetchData(profile.role, profile.rig)}
+                />
+              )}
+            </div>
 
-        {activeTab === 'emp-requests' && (
-          <EmployeeRequestsTab
-            isHr={isHr}
-            userRig={profile.rig}
-            onRefreshEmployees={() => fetchData(profile.role, profile.rig)}
-          />
-        )}
-      </main>
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
