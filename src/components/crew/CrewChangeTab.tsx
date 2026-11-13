@@ -221,7 +221,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
           )}
 
           <div className="pt-4 flex justify-end">
-            <button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50">
+            <button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-primary text-primary-foreground font-medium py-2 px-6 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50">
               {loading ? <Loader2 className="animate-spin" size={18} /> : 'إرسال الطلب'}
             </button>
           </div>
@@ -316,7 +316,7 @@ export default function CrewChangeTab({ requests, employees, onRefresh, isHr, us
 
             <div className="pt-4 flex justify-end gap-3">
               <button onClick={() => setEditingRequest(null)} className="px-4 py-2 text-zinc-400 hover:text-white transition-colors">إلغاء</button>
-              <button onClick={handleHrUpdate} disabled={loading} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+              <button onClick={handleHrUpdate} disabled={loading} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
                 {loading ? <Loader2 className="animate-spin" size={16} /> : 'حفظ'}
               </button>
             </div>

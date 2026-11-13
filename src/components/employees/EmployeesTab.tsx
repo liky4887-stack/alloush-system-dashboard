@@ -185,11 +185,11 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
           </label>
 
           {isHr ? (
-            <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
               <UserPlus size={16} /> إضافة موظف
             </button>
           ) : (
-            <button onClick={() => setIsAddingReq(true)} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+            <button onClick={() => setIsAddingReq(true)} className="bg-blue-600 hover:bg-chart-1 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
               <UserPlus size={16} /> طلب إضافة موظف
             </button>
           )}
@@ -257,7 +257,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                                     onClick={() => handleVacationRequest(emp)}
                                     disabled={vacationLoading === emp.id || hasActiveRequest}
                                     className={`px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 ${
-                                      hasActiveRequest ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700' : 'bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-50'
+                                      hasActiveRequest ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700' : 'bg-amber-600 hover:bg-chart-1 text-primary-foreground disabled:opacity-50'
                                     }`}
                                   >
                                     {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
@@ -312,7 +312,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
               </select>
             </div>
-            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-primary text-primary-foreground font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
             </button>
           </form>
@@ -380,7 +380,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 <input type="text" placeholder="اكتب الجنسية" required value={addReqForm.customNationality} onChange={e => setAddReqForm({...addReqForm, customNationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-blue-500" />
               )}
             </div>
-            <button type="submit" disabled={addReqLoading} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+            <button type="submit" disabled={addReqLoading} className="w-full bg-blue-600 hover:bg-chart-1 text-primary-foreground font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {addReqLoading ? <Loader2 className="animate-spin" size={18} /> : 'إرسال الطلب إلى HR'}
             </button>
           </form>
@@ -424,7 +424,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 </select>
               </div>
             </div>
-            <button type="submit" disabled={editLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+            <button type="submit" disabled={editLoading} className="w-full bg-emerald-600 hover:bg-primary text-primary-foreground font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {editLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
             </button>
           </form>

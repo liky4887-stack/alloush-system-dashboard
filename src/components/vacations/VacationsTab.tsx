@@ -77,7 +77,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${
-              tab === t ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:bg-zinc-800'
+              tab === t ? 'bg-primary text-primary-foreground' : 'text-zinc-400 hover:bg-zinc-800'
             }`}
           >
             {t === 'pending' && <Clock size={16} />}
@@ -123,7 +123,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
               
               {isHr && req.status === 'pending' && (
                 <div className="flex gap-2 mt-4 border-t border-zinc-800 pt-4">
-                  <button onClick={() => openApproveModal(req)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">قبول وتفصيل السفر</button>
+                  <button onClick={() => openApproveModal(req)} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors">قبول وتفصيل السفر</button>
                   <button onClick={() => handleDeny(req.id)} disabled={actionLoading} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors">رفض الطلب</button>
                 </div>
               )}
@@ -173,7 +173,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
             <div className="pt-4 flex justify-end gap-3 mt-4">
               <button onClick={() => setEditingReq(null)} className="px-4 py-2 text-zinc-400 hover:text-white transition-colors">إلغاء</button>
-              <button onClick={handleApprove} disabled={actionLoading || !editDestination} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50">
+              <button onClick={handleApprove} disabled={actionLoading || !editDestination} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50">
                 {actionLoading ? <Loader2 className="animate-spin" size={16} /> : 'موافقة وحفظ'}
               </button>
             </div>

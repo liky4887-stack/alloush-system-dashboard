@@ -87,7 +87,7 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-white">طلبات إضافة وإزالة الموظفين</h2>
         {isHr && (
-          <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+          <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
             <UserPlus size={16} /> إضافة موظف مباشرة
           </button>
         )}
@@ -123,7 +123,7 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
 
               {isHr && req.status === 'pending' && (
                 <div className="flex gap-2 mt-4 border-t border-zinc-800 pt-4">
-                  <button onClick={() => handleApprove(req)} disabled={actionLoading === req.id} className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
+                  <button onClick={() => handleApprove(req)} disabled={actionLoading === req.id} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
                     {actionLoading === req.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} موافقة وتنفيذ
                   </button>
                   <button onClick={() => handleDeny(req.id)} disabled={actionLoading === req.id} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
@@ -161,7 +161,7 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
                 {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
               </select>
             </div>
-            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-primary text-primary-foreground font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
               {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
             </button>
           </form>
