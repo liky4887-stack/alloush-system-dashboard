@@ -9,8 +9,9 @@ interface TabBarProps {
 export default function TabBar({ active, onChange, isHr }: TabBarProps) {
   const TABS: { id: Tab; label: string }[] = [
     ...(isHr ? [{ id: 'overview' as Tab, label: 'نظرة عامة' }] : []),
-    { id: 'crew-change', label: 'طلبات الكرو تشينج' },
     { id: 'employees', label: 'موظفو الحفارات' },
+    { id: 'vacations', label: 'طلبات الإجازات' },
+    ...(isHr ? [{ id: 'crew-change' as Tab, label: 'طلبات الكرو تشينج' }] : []),
   ];
 
   return (

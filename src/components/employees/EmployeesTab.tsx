@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Employee } from '@/types';
-import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
@@ -18,6 +18,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [search, setSearch] = useState('');
   const [expandedRigs, setExpandedRigs] = useState<string[]>(userRig ? [userRig] : []);
   const [showContact, setShowContact] = useState(false);
+  const [vacationLoading, setVacationLoading] = useState<string | null>(null);
 
   const [isAdding, setIsAdding] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
@@ -117,6 +118,22 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     onRefresh();
   };
 
+  const handleVacationRequest = async (emp: Employee) => {
+    if (isHr) return; 
+    setVacationLoading(emp.id);
+    
+    const { error } = await supabase.from('vacation_requests').insert({
+      employee_number: emp.employee_number,
+      employee_name: emp.name,
+      rig: emp.rig,
+      requested_by: (await supabase.auth.getUser()).data.user?.id,
+    });
+    
+    setVacationLoading(null);
+    if (error) alert("Error: " + error.message);
+    else alert("تم إرسال طلب الإجازة بنجاح إلى الموارد البشرية.");
+  };
+
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
@@ -189,6 +206,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                             <th className="px-6 py-3 font-medium">الحالة</th>
                             {showContact && <th className="px-6 py-3 font-medium">الهاتف</th>}
                             {isHr && <th className="px-6 py-3 font-medium text-center">تعديل</th>}
+                            {!isHr && <th className="px-6 py-3 font-medium text-center">إجراء</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800/50">
@@ -199,11 +217,13 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                               <td className="px-6 py-3 text-zinc-400">{emp.position}</td>
                               <td className="px-6 py-3 text-zinc-400">{emp.nationality}</td>
                               <td className="px-6 py-3">
-                                {emp.is_suspended ? (
-                                  <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs">موقوف</span>
-                                ) : (
-                                  <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs">نشط</span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {emp.is_suspended ? (
+                                    <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded text-xs">موقوف</span>
+                                  ) : (
+                                    <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded text-xs">نشط</span>
+                                  )}
+                                </div>
                               </td>
                               {showContact && (
                                 <td className="px-6 py-3 text-zinc-400 font-mono flex items-center gap-2">
@@ -218,6 +238,18 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                                     className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-emerald-500 rounded transition-colors"
                                   >
                                     <Edit2 size={16} />
+                                  </button>
+                                </td>
+                              )}
+                              {!isHr && (
+                                <td className="px-6 py-3 text-center">
+                                  <button
+                                    onClick={() => handleVacationRequest(emp)}
+                                    disabled={vacationLoading === emp.id}
+                                    className="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1 mx-auto disabled:opacity-50"
+                                  >
+                                    {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
+                                    طلب إجازة
                                   </button>
                                 </td>
                               )}

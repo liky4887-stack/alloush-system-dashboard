@@ -6,6 +6,7 @@ import TabBar from '@/components/TabBar';
 import OverviewTab from '@/components/overview/OverviewTab';
 import CrewChangeTab from '@/components/crew/CrewChangeTab';
 import EmployeesTab from '@/components/employees/EmployeesTab';
+import VacationsTab from '@/components/vacations/VacationsTab';
 import AuthPanel from '@/components/AuthPanel';
 import { Tab, CpoRequest, Employee } from '@/types';
 
@@ -13,7 +14,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<{ role: string; rig: string | null } | null>(null);
-  
+
   const [requests, setRequests] = useState<CpoRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,10 +44,10 @@ export default function App() {
   const fetchProfile = async (userId: string) => {
     setLoading(true);
     const { data } = await supabase.from('user_profiles').select('*').eq('id', userId).single();
-    
+
     if (data) {
       setProfile(data);
-      if (data.role === 'SUPERVISOR') setActiveTab('crew-change');
+      if (data.role === 'SUPERVISOR') setActiveTab('vacations'); // Default to vacation requests for supervisors
       fetchData(data.role, data.rig);
     } else {
       await supabase.auth.signOut();
@@ -58,7 +59,7 @@ export default function App() {
   const fetchData = async (role: string, rig: string | null) => {
     let reqQuery = supabase.from('cpo_requests').select('*').order('created_at', { ascending: false });
     let empQuery = supabase.from('employees').select('*');
-    
+
     if (role === 'SUPERVISOR' && rig) {
       reqQuery = reqQuery.eq('rig', rig);
       empQuery = empQuery.eq('rig', rig);
@@ -105,38 +106,46 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-12">
-      <Header session={session} isHr={isHr} onSignOut={handleSignOut} onOpenAuth={() => setAuthOpen(true)} />
+      <Header session={session} isHr={isHr} onOpenAuth={() => setAuthOpen(true)} onSignOut={handleSignOut} />
       <main className="max-w-5xl mx-auto px-4 mt-6">
         <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
-        
+
         {activeTab === 'overview' && isHr && (
-          <OverviewTab 
-            requests={requests} 
-            employees={employees} 
+          <OverviewTab
+            requests={requests}
+            employees={employees}
             onRigClick={(rig) => {
               setTargetRig(rig);
               setActiveTab('employees');
-            }} 
+            }}
           />
         )}
-        
-        {activeTab === 'crew-change' && (
-          <CrewChangeTab 
-            requests={requests} 
-            employees={employees} 
-            onRefresh={() => fetchData(profile.role, profile.rig)} 
-            isHr={isHr} 
-            userRig={profile.rig} 
+
+        {activeTab === 'crew-change' && isHr && (
+          <CrewChangeTab
+            requests={requests}
+            employees={employees}
+            onRefresh={() => fetchData(profile.role, profile.rig)}
+            isHr={isHr}
+            userRig={profile.rig}
           />
         )}
-        
+
         {activeTab === 'employees' && (
-          <EmployeesTab 
-            employees={employees} 
-            onRefresh={() => fetchData(profile.role, profile.rig)} 
-            isHr={isHr} 
-            userRig={profile.rig} 
+          <EmployeesTab
+            employees={employees}
+            onRefresh={() => fetchData(profile.role, profile.rig)}
+            isHr={isHr}
+            userRig={profile.rig}
             initialRig={targetRig}
+          />
+        )}
+
+        {activeTab === 'vacations' && (
+          <VacationsTab
+            isHr={isHr}
+            userRig={profile.rig}
+            employees={employees}
           />
         )}
       </main>
