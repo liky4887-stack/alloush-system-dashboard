@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Employee } from '@/types';
-import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
-const ALL_RIGS = ['B2', 'B3', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'LAHEEB'];
+const ALL_RIGS = ['B2', 'B3', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'LAHEEB', 'UNASSIGNED'];
 
 interface Props {
   employees: Employee[];
@@ -19,18 +19,27 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [expandedRigs, setExpandedRigs] = useState<string[]>(userRig ? [userRig] : []);
   const [showContact, setShowContact] = useState(false);
 
+  // Add Employee State
+  const [isAdding, setIsAdding] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [addForm, setAddForm] = useState({
+    name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2'
+  });
+
+  // Edit Employee State
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editForm, setEditForm] = useState({
+    name: '', employee_number: '', position: '', nationality: '', rig: ''
+  });
+
   useEffect(() => {
     if (initialRig && !expandedRigs.includes(initialRig)) {
       setExpandedRigs(prev => [...prev, initialRig]);
     }
   }, [initialRig]);
-
-  const [isAdding, setIsAdding] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [form, setForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2'
-  });
 
   const toggleRig = (rig: string) => {
     setExpandedRigs(prev => 
@@ -45,7 +54,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   );
 
   const grouped = filtered.reduce((acc, emp) => {
-    let rig = emp.rig || 'B2';
+    let rig = emp.rig || 'UNASSIGNED';
     if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'لهيب') rig = 'LAHEEB';
     if (!acc[rig]) acc[rig] = [];
     acc[rig].push(emp);
@@ -56,22 +65,55 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    setAddLoading(true);
+    setAddError('');
 
     const { error: insertError } = await supabase.from('employees').insert({
-      name: form.name,
-      employee_number: form.employee_number,
-      position: form.position,
-      nationality: form.nationality,
-      rig: form.rig
+      name: addForm.name,
+      employee_number: addForm.employee_number,
+      position: addForm.position,
+      nationality: addForm.nationality,
+      rig: addForm.rig
     });
 
-    setLoading(false);
-    if (insertError) return setError(insertError.message);
+    setAddLoading(false);
+    if (insertError) return setAddError(insertError.message);
     
     setIsAdding(false);
-    setForm({ name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2' });
+    setAddForm({ name: '', employee_number: '', position: '', nationality: '', rig: userRig || 'B2' });
+    onRefresh();
+  };
+
+  const openEdit = (emp: Employee) => {
+    setEditingEmployee(emp);
+    setEditError('');
+    setEditForm({
+      name: emp.name,
+      employee_number: emp.employee_number,
+      position: emp.position || '',
+      nationality: emp.nationality || '',
+      rig: emp.rig || 'UNASSIGNED'
+    });
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEmployee) return;
+    setEditLoading(true);
+    setEditError('');
+
+    const { error: updateError } = await supabase.from('employees').update({
+      name: editForm.name,
+      employee_number: editForm.employee_number,
+      position: editForm.position,
+      nationality: editForm.nationality,
+      rig: editForm.rig
+    }).eq('id', editingEmployee.id);
+
+    setEditLoading(false);
+    if (updateError) return setEditError(updateError.message);
+    
+    setEditingEmployee(null);
     onRefresh();
   };
 
@@ -123,7 +165,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                     {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                   </div>
                   <span className="text-lg font-bold text-zinc-100">
-                    {rig === 'LAHEEB' ? 'ساحة اللهيب' : `حفارة ${rig}`}
+                    {rig === 'LAHEEB' ? 'ساحة اللهيب' : rig === 'UNASSIGNED' ? 'غير محدد (UNASSIGNED)' : `حفارة ${rig}`}
                   </span>
                   <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">
                     {rigEmployees.length} موظف
@@ -146,6 +188,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                             <th className="px-6 py-3 font-medium">الجنسية</th>
                             <th className="px-6 py-3 font-medium">الحالة</th>
                             {showContact && <th className="px-6 py-3 font-medium">الهاتف</th>}
+                            {isHr && <th className="px-6 py-3 font-medium text-center">تعديل</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-800/50">
@@ -168,6 +211,16 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                                   {emp.phone || 'غير مسجل'}
                                 </td>
                               )}
+                              {isHr && (
+                                <td className="px-6 py-3 text-center">
+                                  <button 
+                                    onClick={() => openEdit(emp)}
+                                    className="p-1.5 bg-zinc-800 hover:bg-zinc-700 text-emerald-500 rounded transition-colors"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                </td>
+                              )}
                             </tr>
                           ))}
                         </tbody>
@@ -181,6 +234,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         })}
       </div>
 
+      {/* ADD EMPLOYEE MODAL */}
       {isAdding && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
           <form onSubmit={handleAdd} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
@@ -189,29 +243,75 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <button type="button" onClick={() => setIsAdding(false)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
             </div>
 
-            {error && <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm">{error}</div>}
+            {addError && <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm">{addError}</div>}
 
             <div className="space-y-3">
-              <input type="text" placeholder="الاسم الكامل" required value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
-              <input type="text" placeholder="الرقم الوظيفي" required value={form.employee_number} onChange={e => setForm({...form, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
-              <input type="text" placeholder="الوظيفة" value={form.position} onChange={e => setForm({...form, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              <input type="text" placeholder="الوظيفة" value={addForm.position} onChange={e => setAddForm({...addForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
               
-              <select value={form.nationality} onChange={e => setForm({...form, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
+              <select value={addForm.nationality} onChange={e => setAddForm({...addForm, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
                 <option value="" disabled>الجنسية</option>
                 {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
 
-              {isHr && (
-                <select value={form.rig} onChange={e => setForm({...form, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
-                  {ALL_RIGS.map(r => (
-                    <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r}</option>
-                  ))}
-                </select>
-              )}
+              <select value={addForm.rig} onChange={e => setAddForm({...addForm, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
+                {ALL_RIGS.map(r => (
+                  <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>
+                ))}
+              </select>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
-              {loading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
+            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+              {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* EDIT EMPLOYEE MODAL */}
+      {editingEmployee && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <form onSubmit={handleEdit} className="bg-zinc-900 rounded-xl border border-zinc-800 w-full max-w-md p-6 space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-white">تعديل بيانات الموظف</h3>
+              <button type="button" onClick={() => setEditingEmployee(null)} className="text-zinc-500 hover:text-white"><X size={20} /></button>
+            </div>
+
+            {editError && <div className="bg-red-900/20 text-red-400 p-3 rounded-lg text-sm">{editError}</div>}
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">الاسم الكامل</label>
+                <input type="text" required value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">الرقم الوظيفي</label>
+                <input type="text" required value={editForm.employee_number} onChange={e => setEditForm({...editForm, employee_number: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">الوظيفة</label>
+                <input type="text" value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500" />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">الجنسية</label>
+                <select value={editForm.nationality} onChange={e => setEditForm({...editForm, nationality: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
+                  <option value="" disabled>الجنسية</option>
+                  {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">الحفارة / المجموعة</label>
+                <select value={editForm.rig} onChange={e => setEditForm({...editForm, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
+                  {ALL_RIGS.map(r => (
+                    <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" disabled={editLoading} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+              {editLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
             </button>
           </form>
         </div>
