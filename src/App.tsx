@@ -139,7 +139,6 @@ export default function App() {
       
       <div className="gw-workspace">
         
-        {/* Fixed Topbar Header (No H&E Box) */}
         <header className="gw-topbar gw-glass flex justify-between items-center px-4 sm:px-6">
           <div className="flex items-center gap-3" dir="ltr">
             <div className="flex flex-col">
@@ -193,6 +192,9 @@ export default function App() {
                     setTargetRig(rig);
                     setActiveTab('employees');
                   }}
+                  onNavigate={handleTabChange}
+                  isHr={isHr}
+                  onRefresh={() => fetchData(profile.role, profile.rig)}
                 />
               )}
 
