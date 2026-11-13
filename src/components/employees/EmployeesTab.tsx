@@ -60,7 +60,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     return acc;
   }, {} as Record<string, Employee[]>);
 
-  const sortedRigs = ALL_RIGS;
+  // FIX: Only show rigs that actually have employees in them
+  const sortedRigs = ALL_RIGS.filter(rig => grouped[rig] && grouped[rig].length > 0);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,34 +168,36 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       </div>
 
       <div className="space-y-4">
-        {sortedRigs.map(rig => {
-          const isExpanded = expandedRigs.includes(rig);
-          const rigEmployees = grouped[rig] || [];
+        {sortedRigs.length === 0 ? (
+          <div className="text-center text-zinc-500 py-8 bg-zinc-900/50 rounded-xl border border-zinc-800">
+            لا يوجد موظفين لعرضهم. يرجى استيراد البيانات.
+          </div>
+        ) : (
+          sortedRigs.map(rig => {
+            const isExpanded = expandedRigs.includes(rig);
+            const rigEmployees = grouped[rig] || [];
 
-          return (
-            <div key={rig} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-              <button
-                onClick={() => toggleRig(rig)}
-                className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="bg-zinc-700/50 p-2 rounded-lg text-emerald-500">
-                    {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+            return (
+              <div key={rig} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleRig(rig)}
+                  className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-zinc-700/50 p-2 rounded-lg text-emerald-500">
+                      {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                    </div>
+                    <span className="text-lg font-bold text-zinc-100">
+                      {rig === 'LAHEEB' ? 'ساحة اللهيب' : rig === 'UNASSIGNED' ? 'غير محدد (UNASSIGNED)' : `حفارة ${rig}`}
+                    </span>
+                    <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">
+                      {rigEmployees.length} موظف
+                    </span>
                   </div>
-                  <span className="text-lg font-bold text-zinc-100">
-                    {rig === 'LAHEEB' ? 'ساحة اللهيب' : rig === 'UNASSIGNED' ? 'غير محدد (UNASSIGNED)' : `حفارة ${rig}`}
-                  </span>
-                  <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">
-                    {rigEmployees.length} موظف
-                  </span>
-                </div>
-              </button>
+                </button>
 
-              {isExpanded && (
-                <div className="border-t border-zinc-800">
-                  {rigEmployees.length === 0 ? (
-                    <div className="p-6 text-center text-zinc-500 text-sm">لا يوجد موظفين في هذه المجموعة.</div>
-                  ) : (
+                {isExpanded && (
+                  <div className="border-t border-zinc-800">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm text-right">
                         <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
@@ -258,12 +261,12 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                         </tbody>
                       </table>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
 
       {isAdding && (
