@@ -38,10 +38,11 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
     fetchRequests();
   };
 
-  const handleCancel = async (id: string) => {
-    if (!window.confirm("هل أنت متأكد من إلغاء هذا الطلب نهائياً؟")) return;
+  // HR function to revoke an already approved vacation
+  const handleCancelApproved = async (id: string) => {
+    if (!window.confirm("هل أنت متأكد من إلغاء هذه الإجازة؟ سيتم إرجاع الموظف إلى حالة العمل.")) return;
     setActionLoading(id);
-    await supabase.from('vacation_requests').delete().eq('id', id);
+    await supabase.from('vacation_requests').update({ status: 'denied' }).eq('id', id);
     setActionLoading(null);
     fetchRequests();
   };
@@ -119,7 +120,8 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
                 </div>
               </div>
 
-              {isHr && req.status === 'approved' && (
+              {/* Show travel details for approved requests */}
+              {req.status === 'approved' && (
                 <div className="flex flex-wrap gap-4 text-sm text-[#f4f0ea] bg-[#2a241f] p-3 rounded-lg mb-4 border border-[#524a43]">
                   <div className="flex items-center gap-1.5"><Plane size={16} className="text-[#d4b896]"/> {req.travel_mode === 'car' ? 'سيارة' : req.travel_mode === 'fly' ? 'طيران' : 'مختلط'}</div>
                   <div className="flex items-center gap-1.5"><MapPin size={16} className="text-[#d4b896]"/> {req.route_stops?.join(' ← ')}</div>
@@ -128,6 +130,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
                 </div>
               )}
               
+              {/* Pending Actions for HR */}
               {isHr && req.status === 'pending' && (
                 <div className="flex flex-wrap gap-2 mt-4 border-t border-[#524a43] pt-4">
                   <button onClick={() => openApproveModal(req)} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm">
@@ -136,8 +139,14 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
                   <button onClick={() => handleDeny(req.id)} disabled={actionLoading === req.id} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
                     {actionLoading === req.id ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />} رفض الطلب
                   </button>
-                  <button onClick={() => handleCancel(req.id)} disabled={actionLoading === req.id} className="bg-[#2a241f] hover:bg-[#1C1815] text-[#a8a19b] border border-[#524a43] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
-                    <X size={16} /> إلغاء الطلب
+                </div>
+              )}
+
+              {/* Cancel Action for HR on Approved Vacations */}
+              {isHr && req.status === 'approved' && (
+                <div className="flex flex-wrap gap-2 mt-4 border-t border-[#524a43] pt-4">
+                  <button onClick={() => handleCancelApproved(req.id)} disabled={actionLoading === req.id} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+                    {actionLoading === req.id ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />} إلغاء الإجازة
                   </button>
                 </div>
               )}
@@ -146,6 +155,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
         </div>
       )}
 
+      {/* HR Modal for Approving */}
       {editingReq && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
           <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
