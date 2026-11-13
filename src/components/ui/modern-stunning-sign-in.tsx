@@ -5,7 +5,7 @@ import { useState } from "react";
 import { supabase } from '@/lib/supabase';
 
 const SignIn1 = () => {
-  const [email, setEmail] = React.useState("hr@alloush.local");
+  const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState("");
   const [loading, setLoading] = useState(false);
@@ -35,7 +35,15 @@ const SignIn1 = () => {
     if (authError) {
       setError(authError.message);
     }
-    // No need to set state or redirect. App.tsx listens to onAuthStateChange.
+  };
+
+  // Dynamic title based on input
+  const getDisplayTitle = () => {
+    const clean = email.trim().toLowerCase();
+    if (clean === 'hr' || clean === 'hr@alloush.local') return 'HR Management';
+    if (clean === 'laheeb' || clean === 'laheeb@alloush.local') return 'Laheeb Yard Supervisor';
+    if (clean.startsWith('b') && clean.length <= 3) return `Rig ${clean.toUpperCase()} Supervisor`;
+    return 'H&E Associate';
   };
 
   return (
@@ -47,16 +55,16 @@ const SignIn1 = () => {
           <span className="text-xl font-bold text-foreground">H&E</span>
         </div>
         
-        {/* Title */}
-        <h2 className="text-2xl font-semibold text-foreground mb-6 text-center">
-          H&E Associate
+        {/* Dynamic Title */}
+        <h2 className="text-2xl font-semibold text-foreground mb-6 text-center transition-all duration-300 h-8">
+          {getDisplayTitle()}
         </h2>
         
         {/* Form */}
         <div className="flex flex-col w-full gap-4">
-          <div className="w-full flex flex-col gap-3">
+          <div className="w-full flex flex-col gap-3" dir="ltr">
             <input
-              placeholder="Email or Username (e.g. hr)"
+              placeholder="Email or Username (e.g. hr, b2)"
               type="text"
               value={email}
               className="w-full px-5 py-3 rounded-xl bg-input text-foreground placeholder-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -70,13 +78,13 @@ const SignIn1 = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
             {error && (
-              <div className="text-sm text-destructive text-left">{error}</div>
+              <div className="text-sm text-destructive text-left w-full" dir="ltr">{error}</div>
             )}
           </div>
           
           <hr className="opacity-10 border-border" />
           
-          <div>
+          <div dir="ltr">
             <button
               onClick={handleSignIn}
               disabled={loading}
