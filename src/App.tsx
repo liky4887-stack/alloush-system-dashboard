@@ -138,19 +138,22 @@ export default function App() {
       <div className="gw-room-shade" aria-hidden="true" />
       
       <div className="gw-workspace">
-        <header className="gw-topbar gw-glass">
-          <div className="gw-brand">
-            <span className="gw-brand-icon">
-              <span className="font-bold text-sm text-[#2a241f]">H&E</span>
-            </span>
-            <strong>H&E Associate</strong>
-            <span className="gw-brand-divider" />
-            <span className="gw-personal">
-              {isHr ? 'HR Management' : `${profile.rig} Supervisor`}
-            </span>
+        
+        {/* Fixed Topbar Header */}
+        <header className="gw-topbar gw-glass flex justify-between items-center px-4 sm:px-6">
+          <div className="flex items-center gap-3" dir="ltr">
+            <div className="flex items-center justify-center bg-[#d4b896] text-[#2a241f] w-8 h-8 rounded-md font-bold text-sm shadow-sm">
+              H&E
+            </div>
+            <div className="flex flex-col">
+              <strong className="text-[#f4f0ea] text-sm font-semibold leading-tight">H&E Associate</strong>
+              <span className="text-[#a8a19b] text-xs leading-tight">
+                {isHr ? 'HR Management' : `${profile.rig} Supervisor`}
+              </span>
+            </div>
           </div>
-          <div className="gw-toolbar">
-            <span className="text-sm text-[#a8a19b] mr-4 hidden sm:inline-block">
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-[#a8a19b] hidden sm:inline-block" dir="ltr">
               {session.user.email}
             </span>
             <button 
