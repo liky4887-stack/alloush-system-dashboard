@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Employee } from '@/types';
-import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
@@ -77,12 +77,15 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const grouped = filtered.reduce((acc, emp) => {
     let rig = emp.rig || 'UNASSIGNED';
     if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'لهيب') rig = 'LAHEEB';
+    if (rig.trim() === '') rig = 'UNASSIGNED';
     if (!acc[rig]) acc[rig] = [];
     acc[rig].push(emp);
     return acc;
   }, {} as Record<string, Employee[]>);
 
-  const sortedRigs = ALL_RIGS.filter(rig => grouped[rig] && grouped[rig].length > 0);
+  // Separate the unassigned pool from the assigned rigs
+  const assignedRigs = ALL_RIGS.filter(rig => rig !== 'UNASSIGNED' && grouped[rig] && grouped[rig].length > 0);
+  const unassignedEmployees = grouped['UNASSIGNED'] || [];
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,33 +174,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     }
   };
 
-  // Export to CSV Function
   const handleExportCSV = () => {
     if (!isHr) return;
-    
-    // Define Headers
     const headers = ['Employee Number', 'Name', 'Position', 'Nationality', 'Rig', 'Phone', 'Status'];
-    
-    // Map employees to rows
     const rows = employees.map(emp => [
-      emp.employee_number || '',
-      emp.name || '',
-      emp.position || '',
-      emp.nationality || '',
-      emp.rig || '',
-      emp.phone || '',
-      emp.is_suspended ? 'Suspended' : 'Active'
+      emp.employee_number || '', emp.name || '', emp.position || '', emp.nationality || '', emp.rig || '', emp.phone || '', emp.is_suspended ? 'Suspended' : 'Active'
     ]);
-
-    // Build CSV string with escaping
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-
-    // Add BOM (\uFEFF) so Excel correctly renders Arabic characters
+    const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-    
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -206,6 +190,72 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     link.click();
     document.body.removeChild(link);
   };
+
+  const renderEmployeeTable = (rigEmployees: Employee[]) => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm text-right">
+        <thead className="bg-[#1C1815] text-[#d4b896] border-b border-[#524a43]">
+          <tr>
+            <th className="px-6 py-4 font-bold tracking-wider">الاسم</th>
+            <th className="px-6 py-4 font-bold tracking-wider">الرقم الوظيفي</th>
+            <th className="px-6 py-4 font-bold tracking-wider">الوظيفة</th>
+            <th className="px-6 py-4 font-bold tracking-wider">الجنسية</th>
+            <th className="px-6 py-4 font-bold tracking-wider">الحالة</th>
+            {showContact && <th className="px-6 py-4 font-bold tracking-wider">الهاتف</th>}
+            <th className="px-6 py-4 font-bold tracking-wider text-center">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#524a43]">
+          {rigEmployees.map(emp => {
+            const hasActiveRequest = activeVacations.includes(emp.employee_number);
+            return (
+              <tr key={emp.id} className="bg-[#2a241f] hover:bg-[#4a4038] transition-colors">
+                <td className="px-6 py-4 text-[#f4f0ea] font-medium">{emp.name}</td>
+                <td className="px-6 py-4 text-[#a8a19b] font-mono">{emp.employee_number}</td>
+                <td className="px-6 py-4 text-[#f4f0ea]">{emp.position}</td>
+                <td className="px-6 py-4 text-[#a8a19b]">{emp.nationality}</td>
+                <td className="px-6 py-4">
+                  {emp.is_suspended ? <span className="text-red-400 bg-red-400/10 border border-red-400/20 px-2.5 py-1 rounded-md text-xs font-bold">موقوف</span> : <span className="text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-md text-xs font-bold">نشط</span>}
+                </td>
+                {showContact && (
+                  <td className="px-6 py-4 text-[#a8a19b] font-mono flex items-center gap-2">
+                    <Phone size={14} className="text-[#d4b896]" /> {emp.phone || 'غير مسجل'}
+                  </td>
+                )}
+                <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
+                  {isHr && (
+                    <button onClick={() => openEdit(emp)} className="p-2 bg-[#3a332d] hover:bg-[#524a43] border border-[#524a43] text-[#d4b896] rounded-lg transition-colors shadow-sm" title="تعديل">
+                      <Edit2 size={16} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleVacationRequest(emp)}
+                    disabled={vacationLoading === emp.id || hasActiveRequest}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border ${
+                      hasActiveRequest ? 'bg-[#3a332d] text-[#a8a19b] border-[#524a43] cursor-not-allowed' : 'bg-amber-600/20 text-amber-500 border-amber-600/30 hover:bg-amber-600/30'
+                    }`}
+                  >
+                    {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
+                    {hasActiveRequest ? 'قيد الإجراء' : 'طلب إجازة'}
+                  </button>
+                  {!isHr && (
+                    <button
+                      onClick={() => handleRemoveRequest(emp)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-900/20 text-red-400 border border-red-900/30 hover:bg-red-900/40 transition-all flex items-center gap-1.5 shadow-sm"
+                      title="طلب إزالة الموظف"
+                    >
+                      <UserMinus size={14} />
+                      إزالة
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -242,96 +292,62 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       </div>
 
       <div className="space-y-4">
-        {sortedRigs.length === 0 ? (
+        {assignedRigs.length === 0 && unassignedEmployees.length === 0 ? (
           <div className="text-center text-[#a8a19b] py-8 bg-[#2a241f] rounded-xl border border-[#524a43]">لا يوجد موظفين لعرضهم.</div>
         ) : (
-          sortedRigs.map(rig => {
-            const isExpanded = expandedRigs.includes(rig);
-            const rigEmployees = grouped[rig] || [];
-            return (
-              <div key={rig} className="bg-[#3a332d] border border-[#524a43] rounded-xl overflow-hidden shadow-xl">
-                <button onClick={() => toggleRig(rig)} className="w-full px-6 py-4 flex items-center justify-between bg-[#2a241f] hover:bg-[#4a4038] transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#524a43] p-2 rounded-lg text-[#d4b896] shadow-sm">
-                      {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+          <>
+            {/* Render Assigned Rigs */}
+            {assignedRigs.map(rig => {
+              const isExpanded = expandedRigs.includes(rig);
+              const rigEmployees = grouped[rig] || [];
+              return (
+                <div key={rig} className="bg-[#3a332d] border border-[#524a43] rounded-xl overflow-hidden shadow-xl">
+                  <button onClick={() => toggleRig(rig)} className="w-full px-6 py-4 flex items-center justify-between bg-[#2a241f] hover:bg-[#4a4038] transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-[#524a43] p-2 rounded-lg text-[#d4b896] shadow-sm">
+                        {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                      </div>
+                      <span className="text-lg font-bold text-[#f4f0ea]">{rig === 'LAHEEB' ? 'ساحة اللهيب' : `حفارة ${rig}`}</span>
+                      <span className="bg-[#1C1815] text-[#d4b896] border border-[#524a43] text-xs py-1 px-2.5 rounded-full shadow-inner">
+                        {rigEmployees.length} موظف
+                      </span>
                     </div>
-                    <span className="text-lg font-bold text-[#f4f0ea]">{rig === 'LAHEEB' ? 'ساحة اللهيب' : rig === 'UNASSIGNED' ? 'غير محدد' : `حفارة ${rig}`}</span>
-                    <span className="bg-[#1C1815] text-[#d4b896] border border-[#524a43] text-xs py-1 px-2.5 rounded-full shadow-inner">
-                      {rigEmployees.length} موظف
+                  </button>
+                  {isExpanded && (
+                    <div className="border-t border-[#524a43]">
+                      {renderEmployeeTable(rigEmployees)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Render Unassigned Pool at the bottom */}
+            {unassignedEmployees.length > 0 && (
+              <div className="bg-[#2a241f] border-2 border-amber-600/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(217,119,6,0.15)] mt-8">
+                <button onClick={() => toggleRig('UNASSIGNED')} className="w-full px-6 py-4 flex items-center justify-between bg-amber-900/20 hover:bg-amber-900/30 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-amber-600/20 p-2 rounded-lg text-amber-500 shadow-sm">
+                      {expandedRigs.includes('UNASSIGNED') ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-lg font-bold text-amber-400 flex items-center gap-2">
+                        <AlertCircle size={18} /> موظفين غير محددين (تحتاج إلى تعيين)
+                      </span>
+                    </div>
+                    <span className="bg-[#1C1815] text-amber-500 border border-amber-600/30 text-xs py-1 px-2.5 rounded-full shadow-inner">
+                      {unassignedEmployees.length} موظف
                     </span>
                   </div>
                 </button>
-
-                {isExpanded && (
-                  <div className="border-t border-[#524a43]">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm text-right">
-                        <thead className="bg-[#1C1815] text-[#d4b896] border-b border-[#524a43]">
-                          <tr>
-                            <th className="px-6 py-4 font-bold tracking-wider">الاسم</th>
-                            <th className="px-6 py-4 font-bold tracking-wider">الرقم الوظيفي</th>
-                            <th className="px-6 py-4 font-bold tracking-wider">الوظيفة</th>
-                            <th className="px-6 py-4 font-bold tracking-wider">الجنسية</th>
-                            <th className="px-6 py-4 font-bold tracking-wider">الحالة</th>
-                            {showContact && <th className="px-6 py-4 font-bold tracking-wider">الهاتف</th>}
-                            <th className="px-6 py-4 font-bold tracking-wider text-center">إجراءات</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#524a43]">
-                          {rigEmployees.map(emp => {
-                            const hasActiveRequest = activeVacations.includes(emp.employee_number);
-                            return (
-                              <tr key={emp.id} className="bg-[#2a241f] hover:bg-[#4a4038] transition-colors">
-                                <td className="px-6 py-4 text-[#f4f0ea] font-medium">{emp.name}</td>
-                                <td className="px-6 py-4 text-[#a8a19b] font-mono">{emp.employee_number}</td>
-                                <td className="px-6 py-4 text-[#f4f0ea]">{emp.position}</td>
-                                <td className="px-6 py-4 text-[#a8a19b]">{emp.nationality}</td>
-                                <td className="px-6 py-4">
-                                  {emp.is_suspended ? <span className="text-red-400 bg-red-400/10 border border-red-400/20 px-2.5 py-1 rounded-md text-xs font-bold">موقوف</span> : <span className="text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-md text-xs font-bold">نشط</span>}
-                                </td>
-                                {showContact && (
-                                  <td className="px-6 py-4 text-[#a8a19b] font-mono flex items-center gap-2">
-                                    <Phone size={14} className="text-[#d4b896]" /> {emp.phone || 'غير مسجل'}
-                                  </td>
-                                )}
-                                <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
-                                  {isHr && (
-                                    <button onClick={() => openEdit(emp)} className="p-2 bg-[#3a332d] hover:bg-[#524a43] border border-[#524a43] text-[#d4b896] rounded-lg transition-colors shadow-sm" title="تعديل">
-                                      <Edit2 size={16} />
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => handleVacationRequest(emp)}
-                                    disabled={vacationLoading === emp.id || hasActiveRequest}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border ${
-                                      hasActiveRequest ? 'bg-[#3a332d] text-[#a8a19b] border-[#524a43] cursor-not-allowed' : 'bg-amber-600/20 text-amber-500 border-amber-600/30 hover:bg-amber-600/30'
-                                    }`}
-                                  >
-                                    {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
-                                    {hasActiveRequest ? 'قيد الإجراء' : 'طلب إجازة'}
-                                  </button>
-                                  {!isHr && (
-                                    <button
-                                      onClick={() => handleRemoveRequest(emp)}
-                                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-900/20 text-red-400 border border-red-900/30 hover:bg-red-900/40 transition-all flex items-center gap-1.5 shadow-sm"
-                                      title="طلب إزالة الموظف"
-                                    >
-                                      <UserMinus size={14} />
-                                      إزالة
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                {expandedRigs.includes('UNASSIGNED') && (
+                  <div className="border-t border-amber-600/30">
+                    {renderEmployeeTable(unassignedEmployees)}
                   </div>
                 )}
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
 
