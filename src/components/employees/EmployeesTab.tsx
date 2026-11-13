@@ -4,6 +4,8 @@ import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2 } from '
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
+const ALL_RIGS = ['B2', 'B3', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'LAHEEB'];
+
 interface Props {
   employees: Employee[];
   onRefresh: () => void;
@@ -14,11 +16,9 @@ interface Props {
 
 export default function EmployeesTab({ employees, onRefresh, isHr, userRig, initialRig }: Props) {
   const [search, setSearch] = useState('');
-  // Default state is empty (all folded)
   const [expandedRigs, setExpandedRigs] = useState<string[]>(userRig ? [userRig] : []);
   const [showContact, setShowContact] = useState(false);
 
-  // Listen for clicks from the Overview tab
   useEffect(() => {
     if (initialRig && !expandedRigs.includes(initialRig)) {
       setExpandedRigs(prev => [...prev, initialRig]);
@@ -45,13 +45,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   );
 
   const grouped = filtered.reduce((acc, emp) => {
-    const rig = emp.rig || 'غير محدد';
+    let rig = emp.rig || 'B2';
+    if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'لهيب') rig = 'LAHEEB';
     if (!acc[rig]) acc[rig] = [];
     acc[rig].push(emp);
     return acc;
   }, {} as Record<string, Employee[]>);
 
-  const sortedRigs = Object.keys(grouped).sort();
+  const sortedRigs = ALL_RIGS;
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,34 +108,34 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       </div>
 
       <div className="space-y-4">
-        {sortedRigs.length === 0 ? (
-          <div className="text-center text-zinc-500 py-12 bg-zinc-900/30 rounded-xl border border-zinc-800/50">
-            لا توجد نتائج مطابقة للبحث.
-          </div>
-        ) : (
-          sortedRigs.map(rig => {
-            const isExpanded = expandedRigs.includes(rig);
-            const rigEmployees = grouped[rig];
+        {sortedRigs.map(rig => {
+          const isExpanded = expandedRigs.includes(rig);
+          const rigEmployees = grouped[rig] || [];
 
-            return (
-              <div key={rig} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                <button 
-                  onClick={() => toggleRig(rig)}
-                  className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-zinc-700/50 p-2 rounded-lg text-emerald-500">
-                      {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                    </div>
-                    <span className="text-lg font-bold text-zinc-100">حفارة {rig}</span>
-                    <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">
-                      {rigEmployees.length} موظف
-                    </span>
+          return (
+            <div key={rig} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+              <button 
+                onClick={() => toggleRig(rig)}
+                className="w-full px-6 py-4 flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-zinc-700/50 p-2 rounded-lg text-emerald-500">
+                    {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                   </div>
-                </button>
+                  <span className="text-lg font-bold text-zinc-100">
+                    {rig === 'LAHEEB' ? 'ساحة اللهيب' : `حفارة ${rig}`}
+                  </span>
+                  <span className="bg-zinc-700 text-zinc-300 text-xs py-1 px-2.5 rounded-full">
+                    {rigEmployees.length} موظف
+                  </span>
+                </div>
+              </button>
 
-                {isExpanded && (
-                  <div className="border-t border-zinc-800">
+              {isExpanded && (
+                <div className="border-t border-zinc-800">
+                  {rigEmployees.length === 0 ? (
+                    <div className="p-6 text-center text-zinc-500 text-sm">لا يوجد موظفين في هذه المجموعة.</div>
+                  ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm text-right">
                         <thead className="bg-zinc-900/80 text-zinc-400 border-b border-zinc-800">
@@ -172,12 +173,12 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                         </tbody>
                       </table>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {isAdding && (
@@ -202,8 +203,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
               {isHr && (
                 <select value={form.rig} onChange={e => setForm({...form, rig: e.target.value})} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg py-2 px-3 text-white focus:border-emerald-500">
-                  {['B2','B3','B4','B5','B6','B7','B8','B9','B10','B11'].map(r => (
-                    <option key={r} value={r}>{r}</option>
+                  {ALL_RIGS.map(r => (
+                    <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r}</option>
                   ))}
                 </select>
               )}

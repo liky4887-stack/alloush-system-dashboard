@@ -4,7 +4,6 @@ import { Users, AlertTriangle, Clock } from 'lucide-react';
 const ALL_RIGS = [
   { id: 'B2', label: 'B2' },
   { id: 'B3', label: 'B3' },
-  { id: 'B4', label: 'B4' },
   { id: 'B5', label: 'B5' },
   { id: 'B6', label: 'B6' },
   { id: 'B7', label: 'B7' },
@@ -35,8 +34,7 @@ export default function OverviewTab({
 
   employees.forEach(emp => {
     let rig = emp.rig || 'B2';
-    // Normalize any variations of Laheeb from the excel import
-    if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'lAHEEB' || rig === 'لهيب') {
+    if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'LAHEEB' || rig === 'لهيب') {
       rig = 'LAHEEB';
     }
     
@@ -48,7 +46,6 @@ export default function OverviewTab({
 
   return (
     <div className="space-y-8" dir="rtl">
-      {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 flex items-center justify-between">
           <div>
@@ -75,7 +72,6 @@ export default function OverviewTab({
         </div>
       </div>
 
-      {/* Master Employee List */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <h3 className="text-lg font-bold text-zinc-100 mb-4 flex items-center gap-2">
           <Users size={20} className="text-emerald-500" />
@@ -95,7 +91,6 @@ export default function OverviewTab({
         )}
       </div>
 
-      {/* Rig Breakdown */}
       <div>
         <h3 className="text-lg font-bold text-zinc-100 mb-4">إحصائيات الحفارات</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
