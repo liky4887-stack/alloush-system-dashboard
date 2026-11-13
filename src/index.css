@@ -1,10 +1,19 @@
 @font-face {
   font-family: 'Thmanyah';
+  src: url('/fonts/thmanyahsans-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah';
   src: url('/fonts/thmanyahsans-regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
+
 @font-face {
   font-family: 'Thmanyah';
   src: url('/fonts/thmanyahsans-medium.woff2') format('woff2');
@@ -12,10 +21,19 @@
   font-style: normal;
   font-display: swap;
 }
+
 @font-face {
   font-family: 'Thmanyah';
   src: url('/fonts/thmanyahsans-bold.woff2') format('woff2');
   font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah';
+  src: url('/fonts/thmanyahsans-black.woff2') format('woff2');
+  font-weight: 900;
   font-style: normal;
   font-display: swap;
 }
@@ -51,12 +69,13 @@
     --chart-3: #a8a19b;
     --chart-4: #524a43;
     --chart-5: #3a332d;
-    --font-sans: 'Thmanyah', "Inter", sans-serif;
-    --font-serif: "Playfair Display", serif;
+    --font-sans: 'Thmanyah', sans-serif;
+    --font-serif: 'Thmanyah', serif;
+    --font-mono: 'Thmanyah', monospace;
   }
 
   html {
-    font-family: 'Thmanyah', var(--font-sans);
+    font-family: 'Thmanyah', sans-serif;
   }
 
   body {
@@ -69,6 +88,7 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 }
 
-html, body, button, input, select, textarea, .gw-root {
-  font-family: 'Thmanyah', var(--font-sans) !important;
+/* Force Thmanyah on absolutely everything */
+*, html, body, button, input, select, textarea, .gw-root, .nimbus-nav, .nimbus-item, .gw-brand strong {
+  font-family: 'Thmanyah', sans-serif !important;
 }
