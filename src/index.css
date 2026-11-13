@@ -1,4 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap');
+@font-face {
+  font-family: 'Thmanyah';
+  src: url('/fonts/thmanyahsans-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah';
+  src: url('/fonts/thmanyahsans-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah';
+  src: url('/fonts/thmanyahsans-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +26,6 @@
 
 @layer base {
   :root {
-    /* H&E Warm Dark Theme */
     --background: #2a241f;
     --foreground: #f4f0ea;
     --card: rgba(58, 51, 45, 0.6);
@@ -32,7 +51,7 @@
     --chart-3: #a8a19b;
     --chart-4: #524a43;
     --chart-5: #3a332d;
-    --font-sans: 'Thmanyah', 'Inter', sans-serif;
+    --font-sans: 'Thmanyah', "Inter", sans-serif;
     --font-serif: "Playfair Display", serif;
   }
 
@@ -50,7 +69,6 @@
   ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 }
 
-/* Force Thmanyah everywhere */
 html, body, button, input, select, textarea, .gw-root {
   font-family: 'Thmanyah', var(--font-sans) !important;
 }
