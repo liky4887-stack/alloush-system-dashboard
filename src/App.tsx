@@ -8,7 +8,7 @@ import CrewChangeTab from '@/components/crew/CrewChangeTab';
 import EmployeesTab from '@/components/employees/EmployeesTab';
 import VacationsTab from '@/components/vacations/VacationsTab';
 import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
-import AuthPanel from '@/components/AuthPanel';
+import SignIn1 from '@/components/ui/modern-stunning-sign-in';
 import { Tab, CpoRequest, Employee } from '@/types';
 
 export default function App() {
@@ -19,7 +19,6 @@ export default function App() {
   const [requests, setRequests] = useState<CpoRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authOpen, setAuthOpen] = useState(false);
   const [targetRig, setTargetRig] = useState<string | null>(null);
 
   useEffect(() => {
@@ -83,31 +82,23 @@ export default function App() {
 
   if (!isSupabaseConfigured) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 text-center">
-        <h1 className="text-2xl font-bold text-red-500 mb-4">خطأ في الإعدادات</h1>
-        <p className="text-zinc-400">مفاتيح Supabase غير موجودة. يرجى إضافتها في إعدادات الاستضافة.</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
+        <h1 className="text-2xl font-bold text-destructive mb-4">خطأ في الإعدادات</h1>
+        <p className="text-foreground">مفاتيح Supabase غير موجودة. يرجى إضافتها في إعدادات الاستضافة.</p>
       </div>
     );
   }
 
   if (!session) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4">
-        <h1 className="text-3xl font-bold text-emerald-500 mb-6">H&E Associate</h1>
-        <button onClick={() => setAuthOpen(true)} className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-bold">
-          تسجيل الدخول
-        </button>
-        {authOpen && <AuthPanel onClose={() => setAuthOpen(false)} />}
-      </div>
-    );
+    return <SignIn1 />;
   }
 
-  if (loading || !profile) return <div className="min-h-screen bg-zinc-950 flex justify-center items-center text-white">جاري التحميل...</div>;
+  if (loading || !profile) return <div className="min-h-screen bg-background flex justify-center items-center text-foreground">جاري التحميل...</div>;
   const isHr = profile.role === 'HR';
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans pb-12">
-      <Header session={session} isHr={isHr} onOpenAuth={() => setAuthOpen(true)} onSignOut={handleSignOut} />
+    <div className="min-h-screen bg-background text-foreground font-sans pb-12">
+      <Header session={session} isHr={isHr} onOpenAuth={() => {}} onSignOut={handleSignOut} />
       <main className="max-w-5xl mx-auto px-4 mt-6">
         <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
 
@@ -158,7 +149,6 @@ export default function App() {
           />
         )}
       </main>
-      {authOpen && <AuthPanel onClose={() => setAuthOpen(false)} />}
     </div>
   );
 }
