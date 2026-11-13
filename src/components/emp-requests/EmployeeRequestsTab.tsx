@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { EmployeeRequest } from '@/types';
-import { Loader2, CheckCircle2, XCircle, Clock, Check, X, UserPlus } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Clock, Check, X, UserPlus, Trash2 } from 'lucide-react';
 import { NATIONALITIES } from '@/data/mock';
 
 const ALL_RIGS = ['B2', 'B3', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'LAHEEB', 'UNASSIGNED'];
@@ -66,6 +66,14 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
     fetchRequests();
   };
 
+  const handleDeletePermanent = async (id: string) => {
+    if (!window.confirm("هل أنت متأكد من حذف هذا الطلب نهائياً من السجلات؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    setActionLoading(id);
+    await supabase.from('employee_requests').delete().eq('id', id);
+    setActionLoading(null);
+    fetchRequests();
+  };
+
   const handleDirectAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddLoading(true);
@@ -85,36 +93,36 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
   return (
     <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-foreground">طلبات إضافة وإزالة الموظفين</h2>
+        <h2 className="text-xl font-bold text-[#f4f0ea]">طلبات إضافة وإزالة الموظفين</h2>
         {isHr && (
-          <button onClick={() => setIsAdding(true)} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+          <button onClick={() => setIsAdding(true)} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 shadow-sm">
             <UserPlus size={16} /> إضافة موظف مباشرة
           </button>
         )}
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-emerald-500" size={32} /></div>
+        <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[#d4b896]" size={32} /></div>
       ) : requests.length === 0 ? (
-        <div className="text-center text-zinc-500 py-12 bg-card/50 rounded-xl border border-border">لا توجد طلبات حالياً.</div>
+        <div className="text-center text-[#a8a19b] py-12 bg-[#3a332d] rounded-xl border border-[#524a43]">لا توجد طلبات حالياً.</div>
       ) : (
         <div className="grid gap-4">
           {requests.map((req) => (
-            <div key={req.id} className="bg-card border border-border rounded-xl p-5">
+            <div key={req.id} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-5 shadow-lg">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <div className="font-bold text-foreground text-lg">{req.name}</div>
-                    <span className={`text-xs px-2 py-1 rounded font-medium ${req.request_type === 'REMOVE' ? 'bg-red-900/30 text-red-400' : 'bg-blue-900/30 text-blue-400'}`}>
+                    <div className="font-bold text-[#f4f0ea] text-lg">{req.name}</div>
+                    <span className={`text-xs px-2 py-1 rounded font-bold border ${req.request_type === 'REMOVE' ? 'bg-red-900/20 text-red-400 border-red-900/30' : 'bg-blue-900/20 text-blue-400 border-blue-900/30'}`}>
                       {req.request_type === 'REMOVE' ? 'طلب إزالة' : 'طلب إضافة'}
                     </span>
                   </div>
-                  <div className="text-muted-foreground text-sm mt-1">{req.employee_number} • {req.rig} • {req.position || 'بدون وظيفة'} • {req.nationality || 'بدون جنسية'}</div>
+                  <div className="text-[#a8a19b] text-sm mt-1 font-mono">{req.employee_number} • {req.rig} • {req.position || 'بدون وظيفة'} • {req.nationality || 'بدون جنسية'}</div>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${
-                  req.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
-                  req.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
-                  'bg-red-500/10 text-red-500'
+                <div className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 border ${
+                  req.status === 'pending' ? 'bg-amber-900/20 text-amber-500 border-amber-900/30' :
+                  req.status === 'approved' ? 'bg-emerald-900/20 text-emerald-400 border-emerald-900/30' :
+                  'bg-red-900/20 text-red-400 border-red-900/30'
                 }`}>
                   {req.status === 'pending' ? <Clock size={14}/> : req.status === 'approved' ? <CheckCircle2 size={14}/> : <XCircle size={14}/>}
                   {req.status === 'pending' ? 'قيد الانتظار' : req.status === 'approved' ? 'مقبول' : 'مرفوض'}
@@ -122,12 +130,21 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
               </div>
 
               {isHr && req.status === 'pending' && (
-                <div className="flex gap-2 mt-4 border-t border-border pt-4">
-                  <button onClick={() => handleApprove(req)} disabled={actionLoading === req.id} className="bg-emerald-600 hover:bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
+                <div className="flex flex-wrap gap-2 mt-4 border-t border-[#524a43] pt-4">
+                  <button onClick={() => handleApprove(req)} disabled={actionLoading === req.id} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50 shadow-sm">
                     {actionLoading === req.id ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />} موافقة وتنفيذ
                   </button>
-                  <button onClick={() => handleDeny(req.id)} disabled={actionLoading === req.id} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50">
-                    <X size={16} /> رفض
+                  <button onClick={() => handleDeny(req.id)} disabled={actionLoading === req.id} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+                    {actionLoading === req.id ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />} رفض
+                  </button>
+                </div>
+              )}
+
+              {/* Delete Action for HR on Denied Employee Requests */}
+              {isHr && req.status === 'denied' && (
+                <div className="flex flex-wrap gap-2 mt-4 border-t border-[#524a43] pt-4">
+                  <button onClick={() => handleDeletePermanent(req.id)} disabled={actionLoading === req.id} className="bg-[#2a241f] hover:bg-[#1C1815] text-[#a8a19b] border border-[#524a43] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+                    {actionLoading === req.id ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />} حذف نهائي
                   </button>
                 </div>
               )}
@@ -138,31 +155,31 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
 
       {/* HR Direct Add Employee Modal */}
       {isAdding && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <form onSubmit={handleDirectAdd} className="bg-card rounded-xl border border-border w-full max-w-md p-6 space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-foreground">إضافة موظف مباشرة</h3>
-              <button type="button" onClick={() => setIsAdding(false)} className="text-zinc-500 hover:text-foreground"><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <form onSubmit={handleDirectAdd} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
+              <h3 className="text-lg font-bold text-[#f4f0ea]">إضافة موظف مباشرة</h3>
+              <button type="button" onClick={() => setIsAdding(false)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
             </div>
             <div className="space-y-3">
-              <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:border-emerald-500" />
-              <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:border-emerald-500" />
-              <input type="text" placeholder="الوظيفة" value={addForm.position} onChange={e => setAddForm({...addForm, position: e.target.value})} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:border-emerald-500" />
+              <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
+              <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
+              <input type="text" placeholder="الوظيفة" value={addForm.position} onChange={e => setAddForm({...addForm, position: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
               
-              <select value={addForm.nationality} onChange={e => setAddForm({...addForm, nationality: e.target.value})} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:border-emerald-500">
+              <select value={addForm.nationality} onChange={e => setAddForm({...addForm, nationality: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
                 <option value="" disabled>الجنسية</option>
                 {NATIONALITIES.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
               {addForm.nationality === 'OTHER' && (
-                <input type="text" placeholder="اكتب الجنسية" required value={addForm.customNationality} onChange={e => setAddForm({...addForm, customNationality: e.target.value})} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:border-emerald-500" />
+                <input type="text" placeholder="اكتب الجنسية" required value={addForm.customNationality} onChange={e => setAddForm({...addForm, customNationality: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
               )}
 
-              <select value={addForm.rig} onChange={e => setAddForm({...addForm, rig: e.target.value})} className="w-full bg-muted border border-border rounded-lg py-2 px-3 text-foreground focus:border-emerald-500">
+              <select value={addForm.rig} onChange={e => setAddForm({...addForm, rig: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
                 {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
               </select>
             </div>
-            <button type="submit" disabled={addLoading} className="w-full bg-emerald-600 hover:bg-primary text-primary-foreground font-medium py-2 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
-              {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ'}
+            <button type="submit" disabled={addLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md">
+              {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ الموظف'}
             </button>
           </form>
         </div>
