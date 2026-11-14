@@ -6,6 +6,7 @@ import OverviewTab from '@/components/overview/OverviewTab';
 import EmployeesTab from '@/components/employees/EmployeesTab';
 import VacationsTab from '@/components/vacations/VacationsTab';
 import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
+import AdmissionsTab from '@/components/admissions/AdmissionsTab';
 import SignIn1 from '@/components/ui/modern-stunning-sign-in';
 import { GlassReveal21st } from '@/components/ui/liquid-glass-logo-reveal';
 import { glassStyles } from '@/components/ui/adjustable-glass-dashboard';
@@ -42,7 +43,7 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Realtime listener for employees table
+  // Realtime listener
   useEffect(() => {
     if (!isSupabaseConfigured || !profile) return;
 
@@ -189,7 +190,8 @@ export default function App() {
                   {activeTab === 'overview' ? 'Overview'
                    : activeTab === 'employees' ? 'Employees'
                    : activeTab === 'vacations' ? 'Vacations'
-                   : 'Requests'}
+                   : activeTab === 'emp-requests' ? 'Requests'
+                   : 'Admissions'}
                 </h1>
               </div>
             </div>
@@ -237,6 +239,10 @@ export default function App() {
                   userRig={profile.rig}
                   onRefreshEmployees={() => fetchData(profile.role, profile.rig)}
                 />
+              )}
+
+              {activeTab === 'admissions' && isHr && (
+                <AdmissionsTab employees={employees} />
               )}
             </div>
 
