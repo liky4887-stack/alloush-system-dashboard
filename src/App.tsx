@@ -42,6 +42,21 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Realtime listener for employees table
+  useEffect(() => {
+    if (!isSupabaseConfigured || !profile) return;
+
+    const channel = supabase.channel('realtime-employees')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
+        fetchData(profile.role, profile.rig);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile]);
+
   const fetchProfile = async (userId: string) => {
     setLoading(true);
     const { data } = await supabase.from('user_profiles').select('*').eq('id', userId).single();
@@ -97,9 +112,9 @@ export default function App() {
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-background flex justify-center items-center">
-        <GlassReveal21st 
-          className="h-[80vh] w-full max-w-lg" 
-          background="#2a241f" 
+        <GlassReveal21st
+          className="h-[80vh] w-full max-w-lg"
+          background="#2a241f"
           logoColor="#f4f0ea"
           look="dark"
         />
@@ -110,9 +125,9 @@ export default function App() {
   const isHr = profile.role === 'HR';
 
   return (
-    <div 
-      className="gw-root" 
-      data-theme="dark" 
+    <div
+      className="gw-root"
+      data-theme="dark"
       style={{
         '--gw-background': '#2a241f',
         '--gw-surface': '#3a332d',
@@ -129,16 +144,16 @@ export default function App() {
       } as React.CSSProperties}
     >
       <style>{glassStyles}</style>
-      
-      <img 
-        className="gw-room" 
-        src="https://cdn.21st.dev/assets/mirror/4a/4a0ed73b8ab76bd427aa70ab124329127f3df27cc7f31223a832ed7d28b3dda4.jpg" 
-        alt="" 
+
+      <img
+        className="gw-room"
+        src="https://cdn.21st.dev/assets/mirror/4a/4a0ed73b8ab76bd427aa70ab124329127f3df27cc7f31223a832ed7d28b3dda4.jpg"
+        alt=""
       />
       <div className="gw-room-shade" aria-hidden="true" />
-      
+
       <div className="gw-workspace">
-        
+
         <header className="gw-topbar gw-glass flex justify-between items-center px-4 sm:px-6">
           <div className="flex items-center gap-3" dir="ltr">
             <div className="flex flex-col">
@@ -152,7 +167,7 @@ export default function App() {
             <span className="text-xs text-[#a8a19b] hidden sm:inline-block" dir="ltr">
               {session.user.email}
             </span>
-            <button 
+            <button
               onClick={handleSignOut}
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-[#f4f0ea] hover:bg-white/10 transition-colors border border-[#524a43]"
             >
@@ -164,14 +179,14 @@ export default function App() {
 
         <div className="gw-stage">
           <main className="gw-main gw-glass">
-            
+
             <div className="gw-view-heading">
               <div>
                 <p className="gw-greeting text-[#a8a19b]">
                   Welcome back, {isHr ? 'HR Admin' : `${profile.rig} Supervisor`}.
                 </p>
                 <h1 className="text-[#f4f0ea]">
-                  {activeTab === 'overview' ? 'Overview' 
+                  {activeTab === 'overview' ? 'Overview'
                    : activeTab === 'employees' ? 'Employees'
                    : activeTab === 'vacations' ? 'Vacations'
                    : 'Requests'}
@@ -182,7 +197,7 @@ export default function App() {
             <div className="mb-8">
               <TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} />
             </div>
-            
+
             <div className="gw-view mt-4 text-[#f4f0ea]">
               {activeTab === 'overview' && isHr && (
                 <OverviewTab

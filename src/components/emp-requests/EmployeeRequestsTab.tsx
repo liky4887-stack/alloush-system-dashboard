@@ -29,15 +29,49 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
     fetchRequests();
   }, [isHr, userRig]);
 
+  // Realtime listener for new employee requests
+  useEffect(() => {
+    const channel = supabase.channel('realtime-emp-requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_requests' }, () => {
+        fetchRequests();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isHr, userRig]);
+
   const handleApprove = async (req: EmployeeRequest) => {
     setActionLoading(req.id);
 
     if (req.request_type === 'REMOVE') {
-      const { error: updateError } = await supabase.from('employees').update({ rig: 'UNASSIGNED' }).eq('employee_number', req.employee_number);
-      if (updateError) { alert("Error removing employee: " + updateError.message); setActionLoading(null); return; }
+      const { data: updated, error: updateError } = await supabase
+        .from('employees')
+        .update({ rig: 'UNASSIGNED' })
+        .eq('employee_number', req.employee_number)
+        .select();
+
+      if (updateError) {
+        alert("Error removing employee: " + updateError.message);
+        setActionLoading(null);
+        return;
+      }
+
+      if (!updated || updated.length === 0) {
+        alert("لم يتم العثور على الموظف في قاعدة البيانات! قد يكون الرقم الوظيفي غير صحيح.");
+        setActionLoading(null);
+        return;
+      }
     } else {
-      const { error: insertError } = await supabase.from('employees').insert({ name: req.name, employee_number: req.employee_number, position: req.position, nationality: req.nationality, rig: req.rig });
-      if (insertError) { alert("Error adding employee: " + insertError.message); setActionLoading(null); return; }
+      const { error: insertError } = await supabase.from('employees').insert({
+        name: req.name, employee_number: req.employee_number, position: req.position, nationality: req.nationality, rig: req.rig
+      });
+      if (insertError) {
+        alert("Error adding employee: " + insertError.message);
+        setActionLoading(null);
+        return;
+      }
     }
 
     await supabase.from('employee_requests').update({ status: 'approved' }).eq('id', req.id);
@@ -131,7 +165,6 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
         </div>
       )}
 
-      {/* MODAL VIA PORTAL */}
       {isAdding && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleDirectAdd} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
