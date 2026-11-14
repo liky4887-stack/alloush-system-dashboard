@@ -35,7 +35,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editForm, setEditForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false
+    name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false, joining_date: ''
   });
 
   const totalEmployees = employees.length;
@@ -72,7 +72,8 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
       nationality: isCustomNat ? 'OTHER' : (emp.nationality || ''), 
       customNationality: isCustomNat ? (emp.nationality || '') : '', 
       rig: emp.rig || 'UNASSIGNED', 
-      is_suspended: emp.is_suspended || false 
+      is_suspended: emp.is_suspended || false,
+      joining_date: emp.joining_date || ''
     });
   };
 
@@ -85,7 +86,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
     const finalNat = editForm.nationality === 'OTHER' ? editForm.customNationality : editForm.nationality;
 
     const { error } = await supabase.from('employees').update({
-      name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: finalNat, rig: editForm.rig, is_suspended: editForm.is_suspended
+      name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: finalNat, rig: editForm.rig, is_suspended: editForm.is_suspended, joining_date: editForm.joining_date
     }).eq('id', editingEmployee.id);
 
     setEditLoading(false);
@@ -122,14 +123,17 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
             <input type="text" placeholder="ابحث بالاسم أو الرقم..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pr-9 pl-3 text-sm text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] placeholder-[#a8a19b]" />
           </div>
         </div>
-        
+
         {filteredEmployees.length === 0 ? (
           <div className="text-[#a8a19b] text-sm py-4">لا يوجد موظفين مطابقين للبحث.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-2">
             {filteredEmployees.map(emp => (
               <div key={emp.id} onClick={() => openEdit(emp)} className={`bg-[#2a241f]/80 border border-[#524a43]/50 p-3 rounded-lg flex justify-between items-center text-sm transition-all ${isHr ? 'cursor-pointer hover:border-[#d4b896]/60 hover:bg-[#3a332d]' : ''}`}>
-                <span className="text-[#f4f0ea] truncate pr-2">{emp.name}</span>
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-[#f4f0ea] truncate pr-2">{emp.name}</span>
+                  <span className="text-[#a8a19b] text-xs mt-1 pr-2">التعيين: {emp.joining_date || 'غير مسجل'}</span>
+                </div>
                 <span className="text-[#a8a19b] font-mono bg-[#1C1815] px-2 py-0.5 rounded text-xs shrink-0">{emp.employee_number}</span>
               </div>
             ))}
@@ -159,7 +163,6 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
         </div>
       </div>
 
-      {/* MODAL VIA PORTAL */}
       {editingEmployee && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleEdit} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
@@ -173,6 +176,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الاسم الكامل</label><input type="text" required value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الرقم الوظيفي</label><input type="text" required value={editForm.employee_number} onChange={e => setEditForm({...editForm, employee_number: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الوظيفة</label><input type="text" value={editForm.position} onChange={e => setEditForm({...editForm, position: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
+              
               <div>
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الجنسية</label>
                 <select value={editForm.nationality} onChange={e => setEditForm({...editForm, nationality: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
@@ -183,12 +187,19 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
                   <input type="text" placeholder="اكتب الجنسية" required value={editForm.customNationality} onChange={e => setEditForm({...editForm, customNationality: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none mt-2" />
                 )}
               </div>
+              
               <div>
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الحفارة / المجموعة</label>
                 <select value={editForm.rig} onChange={e => setEditForm({...editForm, rig: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
                   {ALL_RIGS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
                 </select>
               </div>
+
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ التعيين</label>
+                <input type="date" value={editForm.joining_date} onChange={e => setEditForm({...editForm, joining_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
+              </div>
+              
               <div>
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الحالة</label>
                 <select value={editForm.is_suspended ? 'true' : 'false'} onChange={e => setEditForm({...editForm, is_suspended: e.target.value === 'true'})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">

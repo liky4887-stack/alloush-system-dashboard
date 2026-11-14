@@ -182,6 +182,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
             <th className="px-6 py-4 font-bold tracking-wider">الاسم</th>
             <th className="px-6 py-4 font-bold tracking-wider">الرقم الوظيفي</th>
             <th className="px-6 py-4 font-bold tracking-wider">الوظيفة</th>
+            <th className="px-6 py-4 font-bold tracking-wider">تاريخ التعيين</th>
             <th className="px-6 py-4 font-bold tracking-wider">الجنسية</th>
             <th className="px-6 py-4 font-bold tracking-wider">الحالة</th>
             {showContact && <th className="px-6 py-4 font-bold tracking-wider">الهاتف</th>}
@@ -196,6 +197,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 <td className="px-6 py-4 text-[#f4f0ea] font-medium">{emp.name}</td>
                 <td className="px-6 py-4 text-[#a8a19b] font-mono">{emp.employee_number}</td>
                 <td className="px-6 py-4 text-[#f4f0ea]">{emp.position}</td>
+                <td className="px-6 py-4 text-[#a8a19b] font-mono">{emp.joining_date || '-'}</td>
                 <td className="px-6 py-4 text-[#a8a19b]">{emp.nationality}</td>
                 <td className="px-6 py-4">
                   {emp.is_suspended ? <span className="text-red-400 bg-red-400/10 border border-red-400/20 px-2.5 py-1 rounded-md text-xs font-bold">موقوف</span> : <span className="text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-md text-xs font-bold">نشط</span>}
