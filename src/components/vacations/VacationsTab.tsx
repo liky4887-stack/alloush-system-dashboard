@@ -16,6 +16,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
   const [editFlight, setEditFlight] = useState(false);
   const [editHotel, setEditHotel] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -52,7 +53,6 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
   const handleStopVacation = async (id: string) => {
     if (!window.confirm("هل أنت متأكد من إنهاء هذه الإجازة؟ سيتم تسجيل تاريخ العودة للعمل.")) return;
     setActionLoading(id);
-    // Updates status to 'completed' and sets the end_date to now
     await supabase.from('vacation_requests').update({ 
       status: 'completed', 
       end_date: new Date().toISOString() 
@@ -66,6 +66,14 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
     setActionLoading(id);
     await supabase.from('vacation_requests').delete().eq('id', id);
     setActionLoading(null);
+    fetchRequests();
+  };
+
+  const handleClearAll = async () => {
+    if (!window.confirm("هل أنت متأكد من مسح جميع الإجازات المرفوضة نهائياً؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    setIsClearing(true);
+    await supabase.from('vacation_requests').delete().eq('status', 'denied');
+    setIsClearing(false);
     fetchRequests();
   };
 
@@ -102,15 +110,23 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex gap-2 border-b border-[#524a43] pb-2 overflow-x-auto">
-        {(['pending', 'approved', 'denied'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${tab === t ? 'bg-[#d4b896] text-[#2a241f] shadow-md' : 'text-[#a8a19b] hover:bg-[#3a332d] hover:text-[#f4f0ea]'}`}>
-            {t === 'pending' && <Clock size={16} />}
-            {t === 'approved' && <CheckCircle2 size={16} />}
-            {t === 'denied' && <XCircle size={16} />}
-            {t === 'pending' ? 'قيد الانتظار' : t === 'approved' ? 'مقبولة' : 'مرفوضة'}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-[#524a43] pb-2 gap-4">
+        <div className="flex gap-2 overflow-x-auto">
+          {(['pending', 'approved', 'denied'] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap flex items-center gap-2 ${tab === t ? 'bg-[#d4b896] text-[#2a241f] shadow-md' : 'text-[#a8a19b] hover:bg-[#3a332d] hover:text-[#f4f0ea]'}`}>
+              {t === 'pending' && <Clock size={16} />}
+              {t === 'approved' && <CheckCircle2 size={16} />}
+              {t === 'denied' && <XCircle size={16} />}
+              {t === 'pending' ? 'قيد الانتظار' : t === 'approved' ? 'مقبولة' : 'مرفوضة'}
+            </button>
+          ))}
+        </div>
+        
+        {isHr && tab === 'denied' && requests.length > 0 && (
+          <button onClick={handleClearAll} disabled={isClearing} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+            {isClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} مسح الكل
           </button>
-        ))}
+        )}
       </div>
 
       {loading ? (

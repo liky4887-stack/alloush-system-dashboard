@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { VacationRequest } from '@/types';
-import { CalendarCheck, User, Clock, MapPin, Briefcase } from 'lucide-react';
+import { CalendarCheck, User, Clock, MapPin, Briefcase, Trash2, Loader2 } from 'lucide-react';
 
 export default function EndedVacationsTab() {
   const [requests, setRequests] = useState<VacationRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isClearing, setIsClearing] = useState(false);
 
   const fetchEnded = async () => {
     setLoading(true);
-    // Fetch vacations that are marked as completed (ended by HR)
     const { data } = await supabase
       .from('vacation_requests')
       .select('*')
@@ -34,6 +34,14 @@ export default function EndedVacationsTab() {
     };
   }, []);
 
+  const handleClearAll = async () => {
+    if (!window.confirm("هل أنت متأكد من مسح جميع الإجازات المنتهية نهائياً؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    setIsClearing(true);
+    await supabase.from('vacation_requests').delete().eq('status', 'completed');
+    setIsClearing(false);
+    fetchEnded();
+  };
+
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'غير مسجل';
     return new Date(dateString).toLocaleString('ar-LY', {
@@ -44,7 +52,7 @@ export default function EndedVacationsTab() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex justify-between items-center mb-6 bg-[#2a241f] p-6 rounded-xl border border-[#524a43] shadow-lg">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-[#2a241f] p-6 rounded-xl border border-[#524a43] shadow-lg">
         <div className="flex items-center gap-3">
           <div className="bg-[#d4b896]/20 p-3 rounded-lg text-[#d4b896]">
             <CalendarCheck size={24} />
@@ -54,6 +62,12 @@ export default function EndedVacationsTab() {
             <p className="text-sm text-[#a8a19b]">الموظفون الذين انتهت إجازاتهم وعادوا إلى العمل</p>
           </div>
         </div>
+        
+        {requests.length > 0 && (
+          <button onClick={handleClearAll} disabled={isClearing} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+            {isClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} مسح الكل
+          </button>
+        )}
       </div>
 
       {loading ? (
