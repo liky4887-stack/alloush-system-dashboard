@@ -73,18 +73,50 @@ export default function App() {
   };
 
   const fetchData = async (role: string, rig: string | null) => {
-    // FIX: Added .range(0, 5000) to override the 1000 row default limit
-    let reqQuery = supabase.from('cpo_requests').select('*').range(0, 5000).order('created_at', { ascending: false });
-    let empQuery = supabase.from('employees').select('*').range(0, 5000);
+    setLoading(true);
+    
+    // 1. Fetch Requests (Assuming these are few, normal limit is fine)
+    let reqQuery = supabase.from('cpo_requests').select('*').order('created_at', { ascending: false });
+    if (role === 'SUPERVISOR' && rig) reqQuery = reqQuery.eq('rig', rig);
+    const { data: reqData } = await reqQuery;
+    if (reqData) setRequests(reqData as CpoRequest[]);
 
-    if (role === 'SUPERVISOR' && rig) {
-      reqQuery = reqQuery.eq('rig', rig);
-      empQuery = empQuery.eq('rig', rig);
+    // 2. Fetch ALL Employees using recursion (Bypasses the 1000 limit)
+    let allEmployees: Employee[] = [];
+    let from = 0;
+    const limit = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let empQuery = supabase
+        .from('employees')
+        .select('*')
+        .range(from, from + limit - 1);
+        
+      if (role === 'SUPERVISOR' && rig) {
+        empQuery = empQuery.eq('rig', rig);
+      }
+
+      const { data, error } = await empQuery;
+      
+      if (error) {
+        console.error("Fetch error:", error);
+        break;
+      }
+      
+      if (data && data.length > 0) {
+        allEmployees = [...allEmployees, ...data];
+        if (data.length < limit) {
+          hasMore = false;
+        } else {
+          from += limit;
+        }
+      } else {
+        hasMore = false;
+      }
     }
 
-    const [reqRes, empRes] = await Promise.all([reqQuery, empQuery]);
-    if (reqRes.data) setRequests(reqRes.data as CpoRequest[]);
-    if (empRes.data) setEmployees(empRes.data as Employee[]);
+    setEmployees(allEmployees);
     setLoading(false);
   };
 
