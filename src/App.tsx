@@ -23,7 +23,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [targetRig, setTargetRig] = useState<string | null>(null);
 
-  // Realtime debounce ref
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -51,7 +50,6 @@ export default function App() {
 
     const channel = supabase.channel('realtime-employees')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
-        // OPTIMIZATION 3: Debounce realtime updates (wait 1.5s before fetching)
         if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
         fetchTimeoutRef.current = setTimeout(() => {
           fetchData(profile.role, profile.rig);
@@ -88,22 +86,37 @@ export default function App() {
     const { data: reqData } = await reqQuery;
     if (reqData) setRequests(reqData as CpoRequest[]);
 
+    // THE FIX: Recursive fetch with explicit .order() to prevent ghost rows
     let allEmployees: Employee[] = [];
     let from = 0;
     const limit = 1000;
     let hasMore = true;
 
     while (hasMore) {
-      let empQuery = supabase.from('employees').select('*').range(from, from + limit - 1);
-      if (role === 'SUPERVISOR' && rig) empQuery = empQuery.eq('rig', rig);
+      let empQuery = supabase
+        .from('employees')
+        .select('*')
+        .order('employee_number', { ascending: true }) // MUST ORDER for pagination
+        .range(from, from + limit - 1);
+        
+      if (role === 'SUPERVISOR' && rig) {
+        empQuery = empQuery.eq('rig', rig);
+      }
+
       const { data, error } = await empQuery;
       
-      if (error) { console.error(error); break; }
+      if (error) {
+        console.error("Fetch error:", error);
+        break;
+      }
       
       if (data && data.length > 0) {
         allEmployees = [...allEmployees, ...data];
-        if (data.length < limit) hasMore = false;
-        else from += limit;
+        if (data.length < limit) {
+          hasMore = false;
+        } else {
+          from += limit;
+        }
       } else {
         hasMore = false;
       }
@@ -162,7 +175,7 @@ export default function App() {
         '--gw-muted': '#a8a19b',
         '--gw-accent': '#d4b896',
         '--gw-border': '#524a43',
-        '--gw-blur': '12px', // OPTIMIZATION: Reduced from 24px to 12px for smoother scrolling
+        '--gw-blur': '12px',
         '--gw-opacity': '0.35',
         '--gw-saturation': '1.2',
         '--gw-edge': '0.4',

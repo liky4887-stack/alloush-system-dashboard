@@ -53,7 +53,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
   useEffect(() => {
     if (isAddingReq) {
-      supabase.from('employees').select('*').then(({ data }) => {
+      supabase.from('employees').select('*').order('employee_number', { ascending: true }).range(0, 5000).then(({ data }) => {
         if (data) setAllDbEmployees(data as Employee[]);
       });
     }
@@ -81,8 +81,13 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     setAddError('');
     const finalNat = addForm.nationality === 'OTHER' ? addForm.customNationality : addForm.nationality;
     const { error } = await supabase.from('employees').insert({ name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: finalNat, rig: addForm.rig, joining_date: addForm.joining_date });
+    
     setAddLoading(false);
-    if (error) return setAddError(error.message);
+    if (error) {
+      if (error.code === '23505') return setAddError("هذا الرقم الوظيفي مستخدم بالفعل لموظف آخر. يرجى اختيار رقم مختلف.");
+      return setAddError(error.message);
+    }
+    
     setIsAdding(false);
     setAddForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2', joining_date: '' });
     onRefresh();
@@ -142,8 +147,13 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     setEditError('');
     const finalNat = editForm.nationality === 'OTHER' ? editForm.customNationality : editForm.nationality;
     const { error } = await supabase.from('employees').update({ name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: finalNat, rig: editForm.rig, is_suspended: editForm.is_suspended, joining_date: editForm.joining_date }).eq('id', editingEmployee.id);
+    
     setEditLoading(false);
-    if (error) return setEditError(error.message);
+    if (error) {
+      if (error.code === '23505') return setEditError("هذا الرقم الوظيفي مستخدم بالفعل لموظف آخر. يرجى اختيار رقم مختلف.");
+      return setEditError(error.message);
+    }
+    
     setEditingEmployee(null);
     onRefresh();
   };
@@ -334,7 +344,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <h3 className="text-lg font-bold text-[#f4f0ea]">إضافة موظف جديد</h3>
               <button type="button" onClick={() => setIsAdding(false)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
             </div>
-            {addError && <div className="bg-red-900/20 text-red-400 border border-red-900/30 p-3 rounded-lg text-sm">{addError}</div>}
+            {addError && <div className="bg-red-900/20 text-red-400 border border-red-900/30 p-3 rounded-lg text-sm font-bold text-center">{addError}</div>}
             <div className="space-y-3">
               <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
               <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
@@ -404,7 +414,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               <h3 className="text-lg font-bold text-[#f4f0ea]">تعديل بيانات الموظف</h3>
               <button type="button" onClick={() => setEditingEmployee(null)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
             </div>
-            {editError && <div className="bg-red-900/20 text-red-400 border border-red-900/30 p-3 rounded-lg text-sm">{editError}</div>}
+            {editError && <div className="bg-red-900/20 text-red-400 border border-red-900/30 p-3 rounded-lg text-sm font-bold text-center">{editError}</div>}
             <div className="space-y-3">
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الاسم الكامل</label><input type="text" required value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الرقم الوظيفي</label><input type="text" required value={editForm.employee_number} onChange={e => setEditForm({...editForm, employee_number: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
