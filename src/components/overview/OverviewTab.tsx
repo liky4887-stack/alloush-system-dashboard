@@ -130,8 +130,8 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-2">
             {filteredEmployees.map(emp => (
               <div key={emp.id} onClick={() => openEdit(emp)} className={`bg-[#2a241f]/80 border border-[#524a43]/50 p-3 rounded-lg flex justify-between items-center text-sm transition-all ${isHr ? 'cursor-pointer hover:border-[#d4b896]/60 hover:bg-[#3a332d]' : ''}`}>
-                <div className="flex flex-col overflow-hidden">
-                  <span className="text-[#f4f0ea] truncate pr-2">{emp.name}</span>
+                <div className="flex flex-col overflow-hidden text-right">
+                  <span className="text-[#f4f0ea] truncate pr-2 font-bold">{emp.name}</span>
                   <span className="text-[#a8a19b] text-xs mt-1 pr-2">التعيين: {emp.joining_date || 'غير مسجل'}</span>
                 </div>
                 <span className="text-[#a8a19b] font-mono bg-[#1C1815] px-2 py-0.5 rounded text-xs shrink-0">{emp.employee_number}</span>

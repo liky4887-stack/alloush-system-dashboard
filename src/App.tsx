@@ -43,7 +43,6 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Realtime listener
   useEffect(() => {
     if (!isSupabaseConfigured || !profile) return;
 
@@ -74,8 +73,9 @@ export default function App() {
   };
 
   const fetchData = async (role: string, rig: string | null) => {
-    let reqQuery = supabase.from('cpo_requests').select('*').order('created_at', { ascending: false });
-    let empQuery = supabase.from('employees').select('*');
+    // FIX: Added .range(0, 5000) to override the 1000 row default limit
+    let reqQuery = supabase.from('cpo_requests').select('*').range(0, 5000).order('created_at', { ascending: false });
+    let empQuery = supabase.from('employees').select('*').range(0, 5000);
 
     if (role === 'SUPERVISOR' && rig) {
       reqQuery = reqQuery.eq('rig', rig);
