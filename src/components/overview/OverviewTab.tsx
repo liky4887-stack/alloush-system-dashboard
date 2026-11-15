@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { CpoRequest, Employee, Tab } from '@/types';
 import { Users, AlertTriangle, Clock, Search, Edit2, X, Loader2 } from 'lucide-react';
@@ -42,23 +42,30 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
   const totalSuspended = employees.filter(e => e.is_suspended).length;
   const totalPending = requests.filter(r => r.status === 'pending').length;
 
-  const rigStats: Record<string, { total: number, suspended: number }> = {};
-  ALL_RIGS.forEach(rig => { rigStats[rig.id] = { total: 0, suspended: 0 }; });
+  // OPTIMIZATION 1: Memoize heavy calculations
+  const rigStats = useMemo(() => {
+    const stats: Record<string, { total: number, suspended: number }> = {};
+    ALL_RIGS.forEach(rig => { stats[rig.id] = { total: 0, suspended: 0 }; });
 
-  employees.forEach(emp => {
-    let rig = emp.rig || 'UNASSIGNED';
-    if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'LAHEEB' || rig === 'لهيب') { rig = 'LAHEEB'; }
-    if (rig.trim() === '') { rig = 'UNASSIGNED'; }
-    
-    if (rigStats[rig]) {
-      rigStats[rig].total++;
-      if (emp.is_suspended) rigStats[rig].suspended++;
-    }
-  });
+    employees.forEach(emp => {
+      let rig = emp.rig || 'UNASSIGNED';
+      if (rig === 'ساحة اللهيب' || rig === 'الهيب' || rig === 'laheeb' || rig === 'LAHEEB' || rig === 'لهيب') { rig = 'LAHEEB'; }
+      if (rig.trim() === '') { rig = 'UNASSIGNED'; }
+      
+      if (stats[rig]) {
+        stats[rig].total++;
+        if (emp.is_suspended) stats[rig].suspended++;
+      }
+    });
+    return stats;
+  }, [employees]);
 
-  const filteredEmployees = employees.filter(e =>
-    e.name.includes(search) || e.employee_number.includes(search)
-  );
+  // OPTIMIZATION 2: Memoize filtered results and limit the DOM render
+  const filteredEmployees = useMemo(() => {
+    const filtered = employees.filter(e => e.name.includes(search) || e.employee_number.includes(search));
+    // Render max 50 items to prevent mobile GPU crash
+    return { items: filtered.slice(0, 50), total: filtered.length };
+  }, [employees, search]);
 
   const openEdit = (emp: Employee) => {
     if (!isHr) return;
@@ -124,20 +131,27 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
           </div>
         </div>
 
-        {filteredEmployees.length === 0 ? (
+        {filteredEmployees.items.length === 0 ? (
           <div className="text-[#a8a19b] text-sm py-4">لا يوجد موظفين مطابقين للبحث.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-2">
-            {filteredEmployees.map(emp => (
-              <div key={emp.id} onClick={() => openEdit(emp)} className={`bg-[#2a241f]/80 border border-[#524a43]/50 p-3 rounded-lg flex justify-between items-center text-sm transition-all ${isHr ? 'cursor-pointer hover:border-[#d4b896]/60 hover:bg-[#3a332d]' : ''}`}>
-                <div className="flex flex-col overflow-hidden text-right">
-                  <span className="text-[#f4f0ea] truncate pr-2 font-bold">{emp.name}</span>
-                  <span className="text-[#a8a19b] text-xs mt-1 pr-2">التعيين: {emp.joining_date || 'غير مسجل'}</span>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[400px] overflow-y-auto pr-2">
+              {filteredEmployees.items.map(emp => (
+                <div key={emp.id} onClick={() => openEdit(emp)} className={`bg-[#2a241f]/80 border border-[#524a43]/50 p-3 rounded-lg flex justify-between items-center text-sm transition-all ${isHr ? 'cursor-pointer hover:border-[#d4b896]/60 hover:bg-[#3a332d]' : ''}`}>
+                  <div className="flex flex-col overflow-hidden text-right">
+                    <span className="text-[#f4f0ea] truncate pr-2 font-bold">{emp.name}</span>
+                    <span className="text-[#a8a19b] text-xs mt-1 pr-2">التعيين: {emp.joining_date || 'غير مسجل'}</span>
+                  </div>
+                  <span className="text-[#a8a19b] font-mono bg-[#1C1815] px-2 py-0.5 rounded text-xs shrink-0">{emp.employee_number}</span>
                 </div>
-                <span className="text-[#a8a19b] font-mono bg-[#1C1815] px-2 py-0.5 rounded text-xs shrink-0">{emp.employee_number}</span>
+              ))}
+            </div>
+            {filteredEmployees.total > 50 && (
+              <div className="text-center mt-4 text-xs text-[#a8a19b] bg-[#1C1815]/50 p-2 rounded-lg border border-[#524a43]/30">
+                يتم عرض أول 50 موظف فقط لتسريع التطبيق. استخدم البحث للوصول لبقية الموظفين.
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
