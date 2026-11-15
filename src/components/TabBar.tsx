@@ -1,5 +1,5 @@
 import { LiquidNavbar, LiquidNavItem } from '@/components/ui/liquid-glass-navbar';
-import { LayoutDashboard, Users, Palmtree, UserPlus, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, Users, Palmtree, UserPlus, CalendarDays, CalendarCheck } from 'lucide-react';
 import type { Tab } from '@/types';
 
 interface TabBarProps {
@@ -13,6 +13,7 @@ export default function TabBar({ active, onChange, isHr }: TabBarProps) {
     ...(isHr ? [{ id: 'overview' as Tab, item: { label: 'نظرة عامة', icon: <LayoutDashboard size={18} />, fx: 'glow' as const } }] : []),
     { id: 'employees', item: { label: 'الموظفين', icon: <Users size={18} />, fx: 'pop' as const } },
     { id: 'vacations', item: { label: 'الإجازات', icon: <Palmtree size={18} />, fx: 'drop' as const } },
+    ...(isHr ? [{ id: 'ended-vacations' as Tab, item: { label: 'الإجازات المنتهية', icon: <CalendarCheck size={18} />, fx: 'wave' as const } }] : []),
     { id: 'emp-requests', item: { label: 'الطلبات', icon: <UserPlus size={18} />, fx: 'wave' as const } },
     ...(isHr ? [{ id: 'admissions' as Tab, item: { label: 'التعيينات', icon: <CalendarDays size={18} />, fx: 'spin' as const } }] : []),
   ];

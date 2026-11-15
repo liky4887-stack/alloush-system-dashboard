@@ -1,4 +1,4 @@
-export type Tab = 'overview' | 'crew-change' | 'employees' | 'vacations' | 'emp-requests' | 'admissions';
+export type Tab = 'overview' | 'crew-change' | 'employees' | 'vacations' | 'emp-requests' | 'admissions' | 'ended-vacations';
 
 export interface Rig {
   id: string;
@@ -21,7 +21,7 @@ export interface Employee {
 
 export type TravelMode = 'road_half_fly' | 'fly' | 'car';
 export type RequestStatus = 'pending' | 'approved' | 'rejected';
-export type VacationStatus = 'pending' | 'approved' | 'denied';
+export type VacationStatus = 'pending' | 'approved' | 'denied' | 'completed';
 export type EmployeeRequestStatus = 'pending' | 'approved' | 'denied';
 
 export interface CpoRequest {
@@ -56,6 +56,7 @@ export interface VacationRequest {
   route_stops: string[] | null;
   created_at: string;
   updated_at: string;
+  end_date?: string | null;
 }
 
 export interface EmployeeRequest {

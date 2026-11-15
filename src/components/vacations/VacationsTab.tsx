@@ -49,16 +49,20 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
     fetchRequests();
   };
 
-  const handleCancelApproved = async (id: string) => {
-    if (!window.confirm("هل أنت متأكد من إلغاء هذه الإجازة؟ سيتم إرجاع الموظف إلى حالة العمل.")) return;
+  const handleStopVacation = async (id: string) => {
+    if (!window.confirm("هل أنت متأكد من إنهاء هذه الإجازة؟ سيتم تسجيل تاريخ العودة للعمل.")) return;
     setActionLoading(id);
-    await supabase.from('vacation_requests').update({ status: 'denied' }).eq('id', id);
+    // Updates status to 'completed' and sets the end_date to now
+    await supabase.from('vacation_requests').update({ 
+      status: 'completed', 
+      end_date: new Date().toISOString() 
+    }).eq('id', id);
     setActionLoading(null);
     fetchRequests();
   };
 
   const handleDeletePermanent = async (id: string) => {
-    if (!window.confirm("هل أنت متأكد من حذف هذا الطلب نهائياً من السجلات؟ لا يمكن التراجع عن هذا الإجراء.")) return;
+    if (!window.confirm("هل أنت متأكد من حذف هذا الطلب نهائياً من السجلات؟")) return;
     setActionLoading(id);
     await supabase.from('vacation_requests').delete().eq('id', id);
     setActionLoading(null);
@@ -84,7 +88,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
     await supabase.from('vacation_requests').update({
       status: 'approved',
-      destination: 'الهيب',
+      destination: 'الهيب', 
       travel_mode: editTravelMode,
       flight_ticket_confirmed: editFlight,
       hotel_confirmed: editHotel,
@@ -150,8 +154,8 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
               {isHr && req.status === 'approved' && (
                 <div className="flex flex-wrap gap-2 mt-4 border-t border-[#524a43] pt-4">
-                  <button onClick={() => handleCancelApproved(req.id)} disabled={actionLoading === req.id} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
-                    {actionLoading === req.id ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />} إلغاء الإجازة
+                  <button onClick={() => handleStopVacation(req.id)} disabled={actionLoading === req.id} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
+                    {actionLoading === req.id ? <Loader2 size={16} className="animate-spin" /> : <XCircle size={16} />} إنهاء الإجازة
                   </button>
                 </div>
               )}

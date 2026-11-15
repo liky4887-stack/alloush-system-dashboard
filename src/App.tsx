@@ -5,6 +5,7 @@ import TabBar from '@/components/TabBar';
 import OverviewTab from '@/components/overview/OverviewTab';
 import EmployeesTab from '@/components/employees/EmployeesTab';
 import VacationsTab from '@/components/vacations/VacationsTab';
+import EndedVacationsTab from '@/components/vacations/EndedVacationsTab';
 import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
 import AdmissionsTab from '@/components/admissions/AdmissionsTab';
 import SignIn1 from '@/components/ui/modern-stunning-sign-in';
@@ -86,7 +87,6 @@ export default function App() {
     const { data: reqData } = await reqQuery;
     if (reqData) setRequests(reqData as CpoRequest[]);
 
-    // THE FIX: Recursive fetch with explicit .order() to prevent ghost rows
     let allEmployees: Employee[] = [];
     let from = 0;
     const limit = 1000;
@@ -96,7 +96,7 @@ export default function App() {
       let empQuery = supabase
         .from('employees')
         .select('*')
-        .order('employee_number', { ascending: true }) // MUST ORDER for pagination
+        .order('employee_number', { ascending: true })
         .range(from, from + limit - 1);
         
       if (role === 'SUPERVISOR' && rig) {
@@ -105,18 +105,12 @@ export default function App() {
 
       const { data, error } = await empQuery;
       
-      if (error) {
-        console.error("Fetch error:", error);
-        break;
-      }
+      if (error) { console.error(error); break; }
       
       if (data && data.length > 0) {
         allEmployees = [...allEmployees, ...data];
-        if (data.length < limit) {
-          hasMore = false;
-        } else {
-          from += limit;
-        }
+        if (data.length < limit) hasMore = false;
+        else from += limit;
       } else {
         hasMore = false;
       }
@@ -228,6 +222,7 @@ export default function App() {
                   {activeTab === 'overview' ? 'Overview'
                    : activeTab === 'employees' ? 'Employees'
                    : activeTab === 'vacations' ? 'Vacations'
+                   : activeTab === 'ended-vacations' ? 'Ended Vacations'
                    : activeTab === 'emp-requests' ? 'Requests'
                    : 'Admissions'}
                 </h1>
@@ -269,6 +264,10 @@ export default function App() {
                   userRig={profile.rig}
                   employees={employees}
                 />
+              )}
+
+              {activeTab === 'ended-vacations' && isHr && (
+                <EndedVacationsTab />
               )}
 
               {activeTab === 'emp-requests' && (
