@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Employee } from '@/types';
-import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle, Trash2, ArrowRightLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
@@ -21,6 +21,12 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [showContact, setShowContact] = useState(false);
   const [activeVacations, setActiveVacations] = useState<string[]>([]);
   const [vacationLoading, setVacationLoading] = useState<string | null>(null);
+
+  // MULTI-SELECT & BULK ACTIONS STATE
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkTransferModal, setBulkTransferModal] = useState(false);
+  const [bulkTargetRig, setBulkTargetRig] = useState('B2');
 
   const [isAdding, setIsAdding] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
@@ -75,6 +81,58 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const assignedRigs = ALL_RIGS.filter(rig => rig !== 'UNASSIGNED' && grouped[rig] && grouped[rig].length > 0);
   const unassignedEmployees = grouped['UNASSIGNED'] || [];
 
+  // --- SELECTION LOGIC ---
+  const handleSelectAll = (rigEmployees: Employee[]) => {
+    const rigIds = rigEmployees.map(e => e.id);
+    const allSelected = rigIds.every(id => selectedIds.includes(id));
+    
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !rigIds.includes(id)));
+    } else {
+      setSelectedIds(prev => [...new Set([...prev, ...rigIds])]);
+    }
+  };
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  // --- BULK ACTIONS ---
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`هل أنت متأكد من حذف ${selectedIds.length} موظفين نهائياً؟ لا يمكن التراجع.`)) return;
+    setBulkLoading(true);
+    
+    // Delete related data first (simplified, use RPC in enterprise)
+    const selectedEmps = employees.filter(e => selectedIds.includes(e.id));
+    const empNumbers = selectedEmps.map(e => e.employee_number);
+    
+    await supabase.from('vacation_requests').delete().in('employee_number', empNumbers);
+    await supabase.from('employee_requests').delete().in('employee_number', empNumbers);
+    await supabase.from('employees').delete().in('id', selectedIds);
+    
+    setBulkLoading(false);
+    setSelectedIds([]);
+    onRefresh();
+  };
+
+  const handleBulkTransfer = async () => {
+    setBulkLoading(true);
+    await supabase.from('employees').update({ rig: bulkTargetRig }).in('id', selectedIds);
+    setBulkLoading(false);
+    setSelectedIds([]);
+    setBulkTransferModal(false);
+    onRefresh();
+  };
+
+  const handleRemoveAll = async (rig: string) => {
+    if (!window.confirm(`هل أنت متأكد من إزالة جميع موظفي ${rig} إلى (غير محدد)؟`)) return;
+    setBulkLoading(true);
+    await supabase.from('employees').update({ rig: 'UNASSIGNED' }).eq('rig', rig);
+    setBulkLoading(false);
+    onRefresh();
+  };
+
+  // --- STANDARD CRUD ---
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddLoading(true);
@@ -111,26 +169,11 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   };
 
   const handleRemoveRequest = async (emp: Employee) => {
-    const confirmed = window.confirm(`هل أنت متأكد من طلب إزالة الموظف "${emp.name}" من ${emp.rig}؟\n\nسيتم إرسال الطلب إلى الموارد البشرية للموافقة أو الرفض.`);
+    const confirmed = window.confirm(`هل أنت متأكد من طلب إزالة الموظف "${emp.name}" من ${emp.rig}؟`);
     if (!confirmed) return;
     const { error } = await supabase.from('employee_requests').insert({ name: emp.name, employee_number: emp.employee_number, position: emp.position, nationality: emp.nationality, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'REMOVE' });
     if (error) alert("Error: " + error.message);
     else alert("تم إرسال طلب الإزالة إلى الموارد البشرية.");
-  };
-
-  const handleDeleteEmployee = async (emp: Employee) => {
-    const confirmed = window.confirm(`هل أنت متأكد من حذف الموظف "${emp.name}" نهائياً من النظام؟ لا يمكن التراجع عن هذا الإجراء.`);
-    if (!confirmed) return;
-
-    await supabase.from('vacation_requests').delete().eq('employee_number', emp.employee_number);
-    await supabase.from('employee_requests').delete().eq('employee_number', emp.employee_number);
-    const { error } = await supabase.from('employees').delete().eq('id', emp.id);
-
-    if (error) alert("Error deleting employee: " + error.message);
-    else {
-      alert("تم حذف الموظف نهائياً.");
-      onRefresh();
-    }
   };
 
   const openEdit = (emp: Employee) => {
@@ -150,10 +193,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     
     setEditLoading(false);
     if (error) {
-      if (error.code === '23505') return setEditError("هذا الرقم الوظيفي مستخدم بالفعل لموظف آخر. يرجى اختيار رقم مختلف.");
+      if (error.code === '23505') return setEditError("هذا الرقم الوظيفي مستخدم بالفعل لموظف آخر.");
       return setEditError(error.message);
     }
-    
     setEditingEmployee(null);
     onRefresh();
   };
@@ -164,7 +206,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     setVacationLoading(null);
     if (error) alert("Error: " + error.message);
     else {
-      alert("تم إرسال طلب الإجازة بنجاح إلى الموارد البشرية.");
+      alert("تم إرسال طلب الإجازة بنجاح.");
       fetchActiveVacations();
     }
   };
@@ -184,16 +226,25 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     document.body.removeChild(link);
   };
 
-  const renderEmployeeTable = (rigEmployees: Employee[]) => (
-    <div className="overflow-x-auto">
+  const renderEmployeeTable = (rigEmployees: Employee[], rigName: string) => (
+    <div className="overflow-x-auto relative">
       <table className="w-full text-sm text-right">
         <thead className="bg-[#1C1815] text-[#d4b896] border-b border-[#524a43]">
           <tr>
+            {isHr && (
+              <th className="px-4 py-4 w-10 text-center">
+                <input 
+                  type="checkbox" 
+                  checked={rigEmployees.length > 0 && rigEmployees.every(e => selectedIds.includes(e.id))}
+                  onChange={() => handleSelectAll(rigEmployees)}
+                  className="w-4 h-4 rounded border-[#524a43] bg-[#3a332d] text-[#d4b896] focus:ring-[#d4b896] cursor-pointer"
+                />
+              </th>
+            )}
             <th className="px-6 py-4 font-bold tracking-wider">الاسم</th>
             <th className="px-6 py-4 font-bold tracking-wider">الرقم الوظيفي</th>
             <th className="px-6 py-4 font-bold tracking-wider">الوظيفة</th>
             <th className="px-6 py-4 font-bold tracking-wider">تاريخ التعيين</th>
-            <th className="px-6 py-4 font-bold tracking-wider">الجنسية</th>
             <th className="px-6 py-4 font-bold tracking-wider">الحالة</th>
             {showContact && <th className="px-6 py-4 font-bold tracking-wider">الهاتف</th>}
             <th className="px-6 py-4 font-bold tracking-wider text-center">إجراءات</th>
@@ -203,12 +254,21 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
           {rigEmployees.map(emp => {
             const hasActiveRequest = activeVacations.includes(emp.employee_number);
             return (
-              <tr key={emp.id} className="bg-[#2a241f] hover:bg-[#4a4038] transition-colors">
+              <tr key={emp.id} className={`transition-colors ${selectedIds.includes(emp.id) ? 'bg-[#524a43]/30' : 'bg-[#2a241f] hover:bg-[#4a4038]'}`}>
+                {isHr && (
+                  <td className="px-4 py-4 text-center">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedIds.includes(emp.id)}
+                      onChange={() => toggleSelectOne(emp.id)}
+                      className="w-4 h-4 rounded border-[#524a43] bg-[#3a332d] text-[#d4b896] focus:ring-[#d4b896] cursor-pointer"
+                    />
+                  </td>
+                )}
                 <td className="px-6 py-4 text-[#f4f0ea] font-medium">{emp.name}</td>
                 <td className="px-6 py-4 text-[#a8a19b] font-mono">{emp.employee_number}</td>
                 <td className="px-6 py-4 text-[#f4f0ea]">{emp.position}</td>
                 <td className="px-6 py-4 text-[#a8a19b] font-mono">{emp.joining_date || '-'}</td>
-                <td className="px-6 py-4 text-[#a8a19b]">{emp.nationality}</td>
                 <td className="px-6 py-4">
                   {emp.is_suspended ? <span className="text-red-400 bg-red-400/10 border border-red-400/20 px-2.5 py-1 rounded-md text-xs font-bold">موقوف</span> : <span className="text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-md text-xs font-bold">نشط</span>}
                 </td>
@@ -219,14 +279,9 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 )}
                 <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
                   {isHr && (
-                    <>
-                      <button onClick={() => openEdit(emp)} className="p-2 bg-[#3a332d] hover:bg-[#524a43] border border-[#524a43] text-[#d4b896] rounded-lg transition-colors shadow-sm" title="تعديل">
-                        <Edit2 size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteEmployee(emp)} className="p-2 bg-red-900/20 hover:bg-red-900/40 border border-red-900/30 text-red-400 rounded-lg transition-colors shadow-sm" title="حذف نهائي">
-                        <Trash2 size={16} />
-                      </button>
-                    </>
+                    <button onClick={() => openEdit(emp)} className="p-2 bg-[#3a332d] hover:bg-[#524a43] border border-[#524a43] text-[#d4b896] rounded-lg transition-colors shadow-sm" title="تعديل">
+                      <Edit2 size={16} />
+                    </button>
                   )}
                   <button onClick={() => handleVacationRequest(emp)} disabled={vacationLoading === emp.id || hasActiveRequest} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border ${hasActiveRequest ? 'bg-[#3a332d] text-[#a8a19b] border-[#524a43] cursor-not-allowed' : 'bg-amber-600/20 text-amber-500 border-amber-600/30 hover:bg-amber-600/30'}`}>
                     {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
@@ -248,6 +303,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
   return (
     <div className="space-y-6" dir="rtl">
+      {/* HEADER & SEARCH */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-[#2a241f] p-4 rounded-xl border border-[#524a43] shadow-lg">
         <div className="relative w-full md:w-96">
           <Search className="absolute right-3 top-3 text-[#a8a19b]" size={18} />
@@ -279,7 +335,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         </div>
       </div>
 
-      <div className="space-y-4">
+      {/* LIST & RIGS */}
+      <div className="space-y-4 pb-24">
         {assignedRigs.length === 0 && unassignedEmployees.length === 0 ? (
           <div className="text-center text-[#a8a19b] py-8 bg-[#2a241f] rounded-xl border border-[#524a43]">لا يوجد موظفين لعرضهم.</div>
         ) : (
@@ -289,8 +346,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
               const rigEmployees = grouped[rig] || [];
               return (
                 <div key={rig} className="bg-[#3a332d] border border-[#524a43] rounded-xl overflow-hidden shadow-xl">
-                  <button onClick={() => toggleRig(rig)} className="w-full px-6 py-4 flex items-center justify-between bg-[#2a241f] hover:bg-[#4a4038] transition-colors">
-                    <div className="flex items-center gap-3">
+                  <div className="w-full px-6 py-4 flex items-center justify-between bg-[#2a241f] hover:bg-[#4a4038] transition-colors">
+                    <button onClick={() => toggleRig(rig)} className="flex items-center gap-3 flex-1">
                       <div className="bg-[#524a43] p-2 rounded-lg text-[#d4b896] shadow-sm">
                         {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                       </div>
@@ -298,11 +355,17 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                       <span className="bg-[#1C1815] text-[#d4b896] border border-[#524a43] text-xs py-1 px-2.5 rounded-full shadow-inner">
                         {rigEmployees.length} موظف
                       </span>
-                    </div>
-                  </button>
+                    </button>
+                    
+                    {isHr && rigEmployees.length > 0 && (
+                      <button onClick={() => handleRemoveAll(rig)} className="text-xs bg-red-900/20 text-red-400 hover:bg-red-900/40 px-3 py-1.5 rounded-lg transition-colors border border-red-900/30 flex items-center gap-1">
+                        <UserMinus size={14} /> إزالة الكل
+                      </button>
+                    )}
+                  </div>
                   {isExpanded && (
                     <div className="border-t border-[#524a43]">
-                      {renderEmployeeTable(rigEmployees)}
+                      {renderEmployeeTable(rigEmployees, rig)}
                     </div>
                   )}
                 </div>
@@ -311,24 +374,22 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
             {unassignedEmployees.length > 0 && (
               <div className="bg-[#2a241f] border-2 border-amber-600/50 rounded-xl overflow-hidden shadow-[0_0_20px_rgba(217,119,6,0.15)] mt-8">
-                <button onClick={() => toggleRig('UNASSIGNED')} className="w-full px-6 py-4 flex items-center justify-between bg-amber-900/20 hover:bg-amber-900/30 transition-colors">
-                  <div className="flex items-center gap-3">
+                <div className="w-full px-6 py-4 flex items-center justify-between bg-amber-900/20">
+                  <button onClick={() => toggleRig('UNASSIGNED')} className="flex items-center gap-3 flex-1">
                     <div className="bg-amber-600/20 p-2 rounded-lg text-amber-500 shadow-sm">
                       {expandedRigs.includes('UNASSIGNED') ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
                     </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-lg font-bold text-amber-400 flex items-center gap-2">
-                        <AlertCircle size={18} /> موظفين غير محددين (تحتاج إلى تعيين)
-                      </span>
-                    </div>
+                    <span className="text-lg font-bold text-amber-400 flex items-center gap-2">
+                      <AlertCircle size={18} /> موظفين غير محددين
+                    </span>
                     <span className="bg-[#1C1815] text-amber-500 border border-amber-600/30 text-xs py-1 px-2.5 rounded-full shadow-inner">
                       {unassignedEmployees.length} موظف
                     </span>
-                  </div>
-                </button>
+                  </button>
+                </div>
                 {expandedRigs.includes('UNASSIGNED') && (
                   <div className="border-t border-amber-600/30">
-                    {renderEmployeeTable(unassignedEmployees)}
+                    {renderEmployeeTable(unassignedEmployees, 'UNASSIGNED')}
                   </div>
                 )}
               </div>
@@ -337,6 +398,50 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         )}
       </div>
 
+      {/* FLOATING BULK ACTION BAR */}
+      {isHr && selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1C1815] border border-[#524a43] shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-2xl p-2 flex items-center gap-2 z-50" dir="rtl">
+          <div className="px-4 text-[#f4f0ea] font-bold text-sm">
+            {selectedIds.length} محدد
+          </div>
+          <div className="w-px h-8 bg-[#524a43]"></div>
+          <button onClick={() => setBulkTransferModal(true)} className="px-4 py-2 rounded-xl text-sm font-bold text-[#f4f0ea] hover:bg-[#524a43] transition-colors flex items-center gap-2">
+            <ArrowRightLeft size={16} /> نقل
+          </button>
+          <button onClick={handleBulkDelete} className="px-4 py-2 rounded-xl text-sm font-bold text-red-400 hover:bg-red-900/30 transition-colors flex items-center gap-2">
+            <Trash2 size={16} /> حذف
+          </button>
+          <button onClick={() => setSelectedIds([])} className="px-3 py-2 rounded-xl text-sm font-bold text-[#a8a19b] hover:bg-[#3a332d] transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* BULK TRANSFER MODAL */}
+      {bulkTransferModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[110] backdrop-blur-sm">
+          <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-sm p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-bold text-[#f4f0ea]">نقل {selectedIds.length} موظفين</h3>
+              <button onClick={() => setBulkTransferModal(false)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-[#d4b896] mb-2">إلى الحفارة / المجموعة:</label>
+              <select value={bulkTargetRig} onChange={e => setBulkTargetRig(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-3 px-3 text-[#f4f0ea] focus:outline-none focus:border-[#d4b896]">
+                {ALL_RIGS.map(r => <option key={r} value={r}>{r === 'LAHEEB' ? 'ساحة اللهيب' : r === 'UNASSIGNED' ? 'غير محدد' : r}</option>)}
+              </select>
+            </div>
+            <button onClick={handleBulkTransfer} disabled={bulkLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md">
+              {bulkLoading ? <Loader2 className="animate-spin" size={18} /> : 'تأكيد النقل'}
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* --- MODALS (ADD, EDIT, REQUEST) --- */}
+      {/* [Keep the existing Add, Edit, and Request modals here, they are unchanged] */}
+      
       {isAdding && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleAdd} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
