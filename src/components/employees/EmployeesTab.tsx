@@ -398,23 +398,24 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         )}
       </div>
 
-      {/* FLOATING BULK ACTION BAR */}
-      {isHr && selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1C1815] border border-[#524a43] shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-2xl p-2 flex items-center gap-2 z-50" dir="rtl">
-          <div className="px-4 text-[#f4f0ea] font-bold text-sm">
+      {/* FLOATING BULK ACTION BAR (PORTAL) */}
+      {isHr && selectedIds.length > 0 && typeof document !== 'undefined' && createPortal(
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1C1815] border border-[#524a43] shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-2xl p-2 flex items-center gap-2 z-[150] w-[90%] md:w-auto justify-between md:justify-start" dir="rtl">
+          <div className="px-4 text-[#f4f0ea] font-bold text-sm whitespace-nowrap">
             {selectedIds.length} محدد
           </div>
-          <div className="w-px h-8 bg-[#524a43]"></div>
-          <button onClick={() => setBulkTransferModal(true)} className="px-4 py-2 rounded-xl text-sm font-bold text-[#f4f0ea] hover:bg-[#524a43] transition-colors flex items-center gap-2">
+          <div className="w-px h-8 bg-[#524a43] hidden md:block"></div>
+          <button onClick={() => setBulkTransferModal(true)} className="px-3 md:px-4 py-2 rounded-xl text-sm font-bold text-[#f4f0ea] hover:bg-[#524a43] transition-colors flex items-center gap-2">
             <ArrowRightLeft size={16} /> نقل
           </button>
-          <button onClick={handleBulkDelete} className="px-4 py-2 rounded-xl text-sm font-bold text-red-400 hover:bg-red-900/30 transition-colors flex items-center gap-2">
+          <button onClick={handleBulkDelete} className="px-3 md:px-4 py-2 rounded-xl text-sm font-bold text-red-400 hover:bg-red-900/30 transition-colors flex items-center gap-2">
             <Trash2 size={16} /> حذف
           </button>
-          <button onClick={() => setSelectedIds([])} className="px-3 py-2 rounded-xl text-sm font-bold text-[#a8a19b] hover:bg-[#3a332d] transition-colors">
+          <button onClick={() => setSelectedIds([])} className="p-2 rounded-xl text-sm font-bold text-[#a8a19b] hover:bg-[#3a332d] transition-colors">
             <X size={16} />
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* BULK TRANSFER MODAL */}
