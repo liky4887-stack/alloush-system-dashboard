@@ -6,17 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
 const ALL_RIGS = [
-  { id: 'B2', label: 'B2' },
-  { id: 'B3', label: 'B3' },
-  { id: 'B5', label: 'B5' },
-  { id: 'B6', label: 'B6' },
-  { id: 'B7', label: 'B7' },
-  { id: 'B8', label: 'B8' },
-  { id: 'B9', label: 'B9' },
-  { id: 'B10', label: 'B10' },
-  { id: 'B11', label: 'B11' },
-  { id: 'LAHEEB', label: 'ساحة اللهيب' },
-  { id: 'UNASSIGNED', label: 'غير محدد' },
+  { id: 'B2', label: 'B2' }, { id: 'B3', label: 'B3' }, { id: 'B5', label: 'B5' },
+  { id: 'B6', label: 'B6' }, { id: 'B7', label: 'B7' }, { id: 'B8', label: 'B8' },
+  { id: 'B9', label: 'B9' }, { id: 'B10', label: 'B10' }, { id: 'B11', label: 'B11' },
+  { id: 'LAHEEB', label: 'ساحة اللهيب' }, { id: 'UNASSIGNED', label: 'غير محدد' },
 ];
 
 interface Props {
@@ -35,14 +28,13 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editForm, setEditForm] = useState({
-    name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false, joining_date: ''
+    name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false, joining_date: '', auth_expiry_date: '', health_cert_expiry_date: ''
   });
 
   const totalEmployees = employees.length;
   const totalSuspended = employees.filter(e => e.is_suspended).length;
   const totalPending = requests.filter(r => r.status === 'pending').length;
 
-  // OPTIMIZATION 1: Memoize heavy calculations
   const rigStats = useMemo(() => {
     const stats: Record<string, { total: number, suspended: number }> = {};
     ALL_RIGS.forEach(rig => { stats[rig.id] = { total: 0, suspended: 0 }; });
@@ -60,10 +52,8 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
     return stats;
   }, [employees]);
 
-  // OPTIMIZATION 2: Memoize filtered results and limit the DOM render
   const filteredEmployees = useMemo(() => {
     const filtered = employees.filter(e => e.name.includes(search) || e.employee_number.includes(search));
-    // Render max 50 items to prevent mobile GPU crash
     return { items: filtered.slice(0, 50), total: filtered.length };
   }, [employees, search]);
 
@@ -80,7 +70,9 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
       customNationality: isCustomNat ? (emp.nationality || '') : '', 
       rig: emp.rig || 'UNASSIGNED', 
       is_suspended: emp.is_suspended || false,
-      joining_date: emp.joining_date || ''
+      joining_date: emp.joining_date || '',
+      auth_expiry_date: emp.auth_expiry_date || '',
+      health_cert_expiry_date: emp.health_cert_expiry_date || ''
     });
   };
 
@@ -93,7 +85,15 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
     const finalNat = editForm.nationality === 'OTHER' ? editForm.customNationality : editForm.nationality;
 
     const { error } = await supabase.from('employees').update({
-      name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: finalNat, rig: editForm.rig, is_suspended: editForm.is_suspended, joining_date: editForm.joining_date
+      name: editForm.name, 
+      employee_number: editForm.employee_number, 
+      position: editForm.position, 
+      nationality: finalNat, 
+      rig: editForm.rig, 
+      is_suspended: editForm.is_suspended, 
+      joining_date: editForm.joining_date,
+      auth_expiry_date: editForm.auth_expiry_date || null,
+      health_cert_expiry_date: editForm.health_cert_expiry_date || null
     }).eq('id', editingEmployee.id);
 
     setEditLoading(false);
@@ -140,7 +140,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
                 <div key={emp.id} onClick={() => openEdit(emp)} className={`bg-[#2a241f]/80 border border-[#524a43]/50 p-3 rounded-lg flex justify-between items-center text-sm transition-all ${isHr ? 'cursor-pointer hover:border-[#d4b896]/60 hover:bg-[#3a332d]' : ''}`}>
                   <div className="flex flex-col overflow-hidden text-right">
                     <span className="text-[#f4f0ea] truncate pr-2 font-bold">{emp.name}</span>
-                    <span className="text-[#a8a19b] text-xs mt-1 pr-2">التعيين: {emp.joining_date || 'غير مسجل'}</span>
+                    <span className="text-[#a8a19b] text-xs mt-1 pr-2">التصريح: {emp.auth_expiry_date || '-'} | الصحية: {emp.health_cert_expiry_date || '-'}</span>
                   </div>
                   <span className="text-[#a8a19b] font-mono bg-[#1C1815] px-2 py-0.5 rounded text-xs shrink-0">{emp.employee_number}</span>
                 </div>
@@ -148,7 +148,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
             </div>
             {filteredEmployees.total > 50 && (
               <div className="text-center mt-4 text-xs text-[#a8a19b] bg-[#1C1815]/50 p-2 rounded-lg border border-[#524a43]/30">
-                يتم عرض أول 50 موظف فقط لتسريع التطبيق. استخدم البحث للوصول لبقية الموظفين.
+                يتم عرض أول 50 موظف فقط. استخدم البحث للوصول لبقية الموظفين.
               </div>
             )}
           </>
@@ -179,7 +179,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
 
       {editingEmployee && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
-          <form onSubmit={handleEdit} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
+          <form onSubmit={handleEdit} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">تعديل بيانات الموظف</h3>
               <button type="button" onClick={() => setEditingEmployee(null)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
@@ -213,6 +213,16 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ التعيين</label>
                 <input type="date" value={editForm.joining_date} onChange={e => setEditForm({...editForm, joining_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
               </div>
+
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ انتهاء التصريح</label>
+                <input type="date" value={editForm.auth_expiry_date} onChange={e => setEditForm({...editForm, auth_expiry_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
+              </div>
+
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ الشهادة الصحية</label>
+                <input type="date" value={editForm.health_cert_expiry_date} onChange={e => setEditForm({...editForm, health_cert_expiry_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
+              </div>
               
               <div>
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الحالة</label>
@@ -223,7 +233,7 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
               </div>
             </div>
             
-            <button type="submit" disabled={editLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md">
+            <button type="submit" disabled={editLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md sticky bottom-0">
               {editLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
             </button>
           </form>

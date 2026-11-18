@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Employee } from '@/types';
-import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle, Trash2, ArrowRightLeft, ShieldAlert, HeartPulse } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle, Trash2, ArrowRightLeft, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
@@ -42,6 +42,11 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [editForm, setEditForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false, joining_date: '', auth_expiry_date: '', health_cert_expiry_date: '' });
+
+  // Supervisor Auth-Only Edit State
+  const [editingAuthEmp, setEditingAuthEmp] = useState<Employee | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authDate, setAuthDate] = useState('');
 
   const fetchActiveVacations = async () => {
     const { data } = await supabase.from('vacation_requests').select('employee_number').in('status', ['pending', 'approved']);
@@ -127,14 +132,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     setAddError('');
     const finalNat = addForm.nationality === 'OTHER' ? addForm.customNationality : addForm.nationality;
     const { error } = await supabase.from('employees').insert({ 
-      name: addForm.name, 
-      employee_number: addForm.employee_number, 
-      position: addForm.position, 
-      nationality: finalNat, 
-      rig: addForm.rig, 
-      joining_date: addForm.joining_date,
-      auth_expiry_date: addForm.auth_expiry_date || null,
-      health_cert_expiry_date: addForm.health_cert_expiry_date || null
+      name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: finalNat, rig: addForm.rig, joining_date: addForm.joining_date,
+      auth_expiry_date: addForm.auth_expiry_date || null, health_cert_expiry_date: addForm.health_cert_expiry_date || null
     });
     setAddLoading(false);
     if (error) {
@@ -212,6 +211,21 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
       return setEditError(error.message);
     }
     setEditingEmployee(null);
+    onRefresh();
+  };
+
+  // Supervisor Auth Renewal Logic
+  const openAuthEdit = (emp: Employee) => {
+    setEditingAuthEmp(emp);
+    setAuthDate(emp.auth_expiry_date || '');
+  };
+
+  const handleAuthUpdate = async () => {
+    if (!editingAuthEmp) return;
+    setAuthLoading(true);
+    await supabase.from('employees').update({ auth_expiry_date: authDate || null }).eq('id', editingAuthEmp.id);
+    setAuthLoading(false);
+    setEditingAuthEmp(null);
     onRefresh();
   };
 
@@ -298,9 +312,13 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                   </td>
                 )}
                 <td className="px-6 py-4 text-center flex items-center justify-center gap-2">
-                  {isHr && (
+                  {isHr ? (
                     <button onClick={() => openEdit(emp)} className="p-2 bg-[#3a332d] hover:bg-[#524a43] border border-[#524a43] text-[#d4b896] rounded-lg transition-colors shadow-sm" title="تعديل">
                       <Edit2 size={16} />
+                    </button>
+                  ) : (
+                    <button onClick={() => openAuthEdit(emp)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#3a332d] hover:bg-[#524a43] text-[#d4b896] border border-[#524a43] transition-all flex items-center gap-1.5 shadow-sm" title="تجديد التصريح">
+                      <ShieldAlert size={14} /> تجديد التصريح
                     </button>
                   )}
                   <button onClick={() => handleVacationRequest(emp)} disabled={vacationLoading === emp.id || hasActiveRequest} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border ${hasActiveRequest ? 'bg-[#3a332d] text-[#a8a19b] border-[#524a43] cursor-not-allowed' : 'bg-amber-600/20 text-amber-500 border-amber-600/30 hover:bg-amber-600/30'}`}>
@@ -456,9 +474,30 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         document.body
       )}
 
+      {/* SUPERVISOR AUTH-ONLY EDIT MODAL */}
+      {editingAuthEmp && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
+          <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-sm p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-bold text-[#f4f0ea]">تجديد تصريح الموظف</h3>
+              <button onClick={() => setEditingAuthEmp(null)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
+            </div>
+            <div className="text-sm text-[#a8a19b] mb-4">{editingAuthEmp.name} ({editingAuthEmp.employee_number})</div>
+            <div>
+              <label className="block text-sm font-bold text-[#d4b896] mb-2">تاريخ انتهاء التصريح الجديد</label>
+              <input type="date" value={authDate} onChange={e => setAuthDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-3 px-3 text-[#f4f0ea] focus:outline-none focus:border-[#d4b896]" style={{ colorScheme: 'dark' }} />
+            </div>
+            <button onClick={handleAuthUpdate} disabled={authLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md">
+              {authLoading ? <Loader2 className="animate-spin" size={18} /> : 'تحديث التصريح'}
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {isAdding && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
-          <form onSubmit={handleAdd} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
+          <form onSubmit={handleAdd} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">إضافة موظف جديد</h3>
               <button type="button" onClick={() => setIsAdding(false)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>

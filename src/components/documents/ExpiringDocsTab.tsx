@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Employee } from '@/types';
-import { ShieldAlert, Calendar, HeartPulse, Check, Edit2, Loader2, X } from 'lucide-react';
+import { ShieldAlert, Calendar, HeartPulse, Check, Edit2, Loader2, X, Search } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 export default function ExpiringDocsTab({ employees, onRefresh }: { employees: Employee[], onRefresh: () => void }) {
-  const [expiringEmployees, setExpiringEmployees] = useState<Employee[]>([]);
+  const [search, setSearch] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Edit Modal State
@@ -14,17 +14,22 @@ export default function ExpiringDocsTab({ employees, onRefresh }: { employees: E
   const [editAuthDate, setEditAuthDate] = useState('');
   const [editHealthDate, setEditHealthDate] = useState('');
 
-  useEffect(() => {
-    // Filter employees whose auth is 'active' and not ended
+  // Filter, search, and limit to 50 to prevent lag
+  const displayedEmployees = useMemo(() => {
     const activeDocs = employees.filter(emp => emp.auth_status === 'active');
+    const filtered = activeDocs.filter(emp => 
+      emp.name.includes(search) || emp.employee_number.includes(search)
+    );
+    
     // Sort by closest expiration
-    activeDocs.sort((a, b) => {
+    filtered.sort((a, b) => {
       if (!a.auth_expiry_date) return 1;
       if (!b.auth_expiry_date) return -1;
       return new Date(a.auth_expiry_date).getTime() - new Date(b.auth_expiry_date).getTime();
     });
-    setExpiringEmployees(activeDocs);
-  }, [employees]);
+
+    return filtered.slice(0, 50);
+  }, [employees, search]);
 
   const getDaysLeft = (dateString?: string | null) => {
     if (!dateString) return null;
@@ -33,7 +38,7 @@ export default function ExpiringDocsTab({ employees, onRefresh }: { employees: E
   };
 
   const handleEndAuth = async (emp: Employee) => {
-    if (!window.confirm(`هل أنت متأكد من إنهاء تصريح "${emp.name}"؟ سيتم نقله إلى سجل المنتهية.`)) return;
+    if (!window.confirm(`هل أنت متأكد من إنهاء تصريح "${emp.name}"؟`)) return;
     setActionLoading(emp.id);
     await supabase.from('employees').update({ auth_status: 'ended' }).eq('id', emp.id);
     setActionLoading(null);
@@ -60,27 +65,37 @@ export default function ExpiringDocsTab({ employees, onRefresh }: { employees: E
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex justify-between items-center bg-[#2a241f] p-6 rounded-xl border border-[#524a43] shadow-lg">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#2a241f] p-6 rounded-xl border border-[#524a43] shadow-lg gap-4">
         <div className="flex items-center gap-3">
           <div className="bg-amber-500/20 p-3 rounded-lg text-amber-500">
             <ShieldAlert size={24} />
           </div>
           <div>
             <h2 className="text-xl font-bold text-[#f4f0ea]">التصاريح والشهادات الصحية</h2>
-            <p className="text-sm text-[#a8a19b]">الموظفون الذين تقترب تصاريحهم من الانتهاء</p>
+            <p className="text-sm text-[#a8a19b]">يتم عرض أول 50 موظف فقط. استخدم البحث للعثور على البقية.</p>
           </div>
+        </div>
+        
+        <div className="relative w-full md:w-72">
+          <Search className="absolute right-3 top-2.5 text-[#a8a19b]" size={16} />
+          <input 
+            type="text" 
+            placeholder="ابحث بالاسم أو الرقم..." 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            className="w-full bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pr-9 pl-3 text-sm text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] placeholder-[#a8a19b]" 
+          />
         </div>
       </div>
 
       <div className="grid gap-4">
-        {expiringEmployees.length === 0 ? (
-          <div className="text-center text-[#a8a19b] py-12 bg-[#3a332d] rounded-xl border border-[#524a43]">لا توجد تصاريح قريبة من الانتهاء.</div>
+        {displayedEmployees.length === 0 ? (
+          <div className="text-center text-[#a8a19b] py-12 bg-[#3a332d] rounded-xl border border-[#524a43]">لا توجد تصاريح مطابقة للبحث.</div>
         ) : (
-          expiringEmployees.map(emp => {
+          displayedEmployees.map(emp => {
             const authDays = getDaysLeft(emp.auth_expiry_date);
             const healthDays = getDaysLeft(emp.health_cert_expiry_date);
 
-            // Warning colors based on days left
             const authColor = authDays !== null && authDays <= 7 ? 'text-red-500 bg-red-900/20 border-red-500/30' : 
                               authDays !== null && authDays <= 30 ? 'text-amber-500 bg-amber-900/20 border-amber-500/30' : 
                               'text-emerald-400 bg-emerald-900/20 border-emerald-500/30';
@@ -97,7 +112,6 @@ export default function ExpiringDocsTab({ employees, onRefresh }: { employees: E
                 </div>
 
                 <div className="flex flex-wrap gap-3 w-full md:w-auto">
-                  {/* Auth Card */}
                   <div className={`flex items-center gap-3 px-4 py-2 rounded-lg border ${authColor}`}>
                     <Calendar size={18} />
                     <div className="flex flex-col">
@@ -111,7 +125,6 @@ export default function ExpiringDocsTab({ employees, onRefresh }: { employees: E
                     )}
                   </div>
 
-                  {/* Health Card */}
                   <div className={`flex items-center gap-3 px-4 py-2 rounded-lg border ${healthColor}`}>
                     <HeartPulse size={18} />
                     <div className="flex flex-col">
