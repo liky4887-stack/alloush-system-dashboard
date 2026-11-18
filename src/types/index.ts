@@ -1,4 +1,4 @@
-export type Tab = 'overview' | 'crew-change' | 'employees' | 'vacations' | 'emp-requests' | 'admissions' | 'ended-vacations';
+export type Tab = 'overview' | 'crew-change' | 'employees' | 'vacations' | 'emp-requests' | 'expiring-docs' | 'ended-docs' | 'ended-vacations';
 
 export interface Rig {
   id: string;
@@ -17,6 +17,9 @@ export interface Employee {
   rig: string;
   is_suspended?: boolean;
   joining_date?: string;
+  auth_expiry_date?: string | null;
+  health_cert_expiry_date?: string | null;
+  auth_status?: 'active' | 'ended';
 }
 
 export type TravelMode = 'road_half_fly' | 'fly' | 'car';

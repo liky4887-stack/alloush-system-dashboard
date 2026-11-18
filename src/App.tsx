@@ -7,7 +7,8 @@ import EmployeesTab from '@/components/employees/EmployeesTab';
 import VacationsTab from '@/components/vacations/VacationsTab';
 import EndedVacationsTab from '@/components/vacations/EndedVacationsTab';
 import EmployeeRequestsTab from '@/components/emp-requests/EmployeeRequestsTab';
-import AdmissionsTab from '@/components/admissions/AdmissionsTab';
+import ExpiringDocsTab from '@/components/documents/ExpiringDocsTab';
+import EndedDocsTab from '@/components/documents/EndedDocsTab';
 import SignIn1 from '@/components/ui/modern-stunning-sign-in';
 import { GlassReveal21st } from '@/components/ui/liquid-glass-logo-reveal';
 import { glassStyles } from '@/components/ui/adjustable-glass-dashboard';
@@ -223,8 +224,9 @@ export default function App() {
                    : activeTab === 'employees' ? 'Employees'
                    : activeTab === 'vacations' ? 'Vacations'
                    : activeTab === 'ended-vacations' ? 'Ended Vacations'
-                   : activeTab === 'emp-requests' ? 'Requests'
-                   : 'Admissions'}
+                   : activeTab === 'expiring-docs' ? 'Expiring Documents'
+                   : activeTab === 'ended-docs' ? 'Ended Documents'
+                   : 'Requests'}
                 </h1>
               </div>
             </div>
@@ -278,8 +280,12 @@ export default function App() {
                 />
               )}
 
-              {activeTab === 'admissions' && isHr && (
-                <AdmissionsTab employees={employees} />
+              {activeTab === 'expiring-docs' && isHr && (
+                <ExpiringDocsTab employees={employees} onRefresh={() => fetchData(profile.role, profile.rig)} />
+              )}
+
+              {activeTab === 'ended-docs' && isHr && (
+                <EndedDocsTab employees={employees} onRefresh={() => fetchData(profile.role, profile.rig)} />
               )}
             </div>
 

@@ -1,5 +1,5 @@
 import { LiquidNavbar, LiquidNavItem } from '@/components/ui/liquid-glass-navbar';
-import { LayoutDashboard, Users, Palmtree, UserPlus, CalendarDays, CalendarCheck } from 'lucide-react';
+import { LayoutDashboard, Users, Palmtree, UserPlus, CalendarDays, ShieldAlert, ShieldX } from 'lucide-react';
 import type { Tab } from '@/types';
 
 interface TabBarProps {
@@ -13,9 +13,12 @@ export default function TabBar({ active, onChange, isHr }: TabBarProps) {
     ...(isHr ? [{ id: 'overview' as Tab, label: 'نظرة عامة', icon: <LayoutDashboard size={18} /> }] : []),
     { id: 'employees', label: 'الموظفين', icon: <Users size={18} /> },
     { id: 'vacations', label: 'الإجازات', icon: <Palmtree size={18} /> },
-    ...(isHr ? [{ id: 'ended-vacations' as Tab, label: 'المنتهية', icon: <CalendarCheck size={18} /> }] : []),
+    ...(isHr ? [{ id: 'ended-vacations' as Tab, label: 'الإجازات المنتهية', icon: <Palmtree size={18} /> }] : []),
     { id: 'emp-requests', label: 'الطلبات', icon: <UserPlus size={18} /> },
-    ...(isHr ? [{ id: 'admissions' as Tab, label: 'التعيينات', icon: <CalendarDays size={18} /> }] : []),
+    ...(isHr ? [
+      { id: 'expiring-docs' as Tab, label: 'التصاريح', icon: <ShieldAlert size={18} /> },
+      { id: 'ended-docs' as Tab, label: 'التصاريح المنتهية', icon: <ShieldX size={18} /> }
+    ] : []),
   ];
 
   const liquidItems: LiquidNavItem[] = tabItems.map(t => ({
@@ -28,8 +31,6 @@ export default function TabBar({ active, onChange, isHr }: TabBarProps) {
 
   return (
     <div className="flex justify-center mb-6 px-2 md:px-4 w-full">
-      
-      {/* 📱 Mobile View: Scrollable CSS Glass Pill (Zero WebGL, 60fps) */}
       <div className="flex md:hidden w-full overflow-x-auto py-2 px-1 gap-1 snap-x hide-scrollbar" dir="rtl">
         {tabItems.map((t) => (
           <button
@@ -47,7 +48,6 @@ export default function TabBar({ active, onChange, isHr }: TabBarProps) {
         ))}
       </div>
 
-      {/* 💻 Desktop/Tablet View: The Liquid WebGL Bar */}
       <div className="hidden md:block">
         <LiquidNavbar
           items={liquidItems}
@@ -57,7 +57,6 @@ export default function TabBar({ active, onChange, isHr }: TabBarProps) {
           sound={true}
         />
       </div>
-
     </div>
   );
 }

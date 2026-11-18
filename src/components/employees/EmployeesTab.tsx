@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Employee } from '@/types';
-import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle, Trash2, ArrowRightLeft } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle, Trash2, ArrowRightLeft, ShieldAlert, HeartPulse } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
@@ -22,7 +22,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [activeVacations, setActiveVacations] = useState<string[]>([]);
   const [vacationLoading, setVacationLoading] = useState<string | null>(null);
 
-  // MULTI-SELECT & BULK ACTIONS STATE
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkTransferModal, setBulkTransferModal] = useState(false);
@@ -31,7 +30,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [isAdding, setIsAdding] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
-  const [addForm, setAddForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2', joining_date: '' });
+  const [addForm, setAddForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2', joining_date: '', auth_expiry_date: '', health_cert_expiry_date: '' });
 
   const [isAddingReq, setIsAddingReq] = useState(false);
   const [addReqLoading, setAddReqLoading] = useState(false);
@@ -42,7 +41,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
-  const [editForm, setEditForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false, joining_date: '' });
+  const [editForm, setEditForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false, joining_date: '', auth_expiry_date: '', health_cert_expiry_date: '' });
 
   const fetchActiveVacations = async () => {
     const { data } = await supabase.from('vacation_requests').select('employee_number').in('status', ['pending', 'approved']);
@@ -81,35 +80,25 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const assignedRigs = ALL_RIGS.filter(rig => rig !== 'UNASSIGNED' && grouped[rig] && grouped[rig].length > 0);
   const unassignedEmployees = grouped['UNASSIGNED'] || [];
 
-  // --- SELECTION LOGIC ---
   const handleSelectAll = (rigEmployees: Employee[]) => {
     const rigIds = rigEmployees.map(e => e.id);
     const allSelected = rigIds.every(id => selectedIds.includes(id));
-    
-    if (allSelected) {
-      setSelectedIds(prev => prev.filter(id => !rigIds.includes(id)));
-    } else {
-      setSelectedIds(prev => [...new Set([...prev, ...rigIds])]);
-    }
+    if (allSelected) setSelectedIds(prev => prev.filter(id => !rigIds.includes(id)));
+    else setSelectedIds(prev => [...new Set([...prev, ...rigIds])]);
   };
 
   const toggleSelectOne = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  // --- BULK ACTIONS ---
   const handleBulkDelete = async () => {
-    if (!window.confirm(`هل أنت متأكد من حذف ${selectedIds.length} موظفين نهائياً؟ لا يمكن التراجع.`)) return;
+    if (!window.confirm(`هل أنت متأكد من حذف ${selectedIds.length} موظفين نهائياً؟`)) return;
     setBulkLoading(true);
-    
-    // Delete related data first (simplified, use RPC in enterprise)
     const selectedEmps = employees.filter(e => selectedIds.includes(e.id));
     const empNumbers = selectedEmps.map(e => e.employee_number);
-    
     await supabase.from('vacation_requests').delete().in('employee_number', empNumbers);
     await supabase.from('employee_requests').delete().in('employee_number', empNumbers);
     await supabase.from('employees').delete().in('id', selectedIds);
-    
     setBulkLoading(false);
     setSelectedIds([]);
     onRefresh();
@@ -132,22 +121,28 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     onRefresh();
   };
 
-  // --- STANDARD CRUD ---
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddLoading(true);
     setAddError('');
     const finalNat = addForm.nationality === 'OTHER' ? addForm.customNationality : addForm.nationality;
-    const { error } = await supabase.from('employees').insert({ name: addForm.name, employee_number: addForm.employee_number, position: addForm.position, nationality: finalNat, rig: addForm.rig, joining_date: addForm.joining_date });
-    
+    const { error } = await supabase.from('employees').insert({ 
+      name: addForm.name, 
+      employee_number: addForm.employee_number, 
+      position: addForm.position, 
+      nationality: finalNat, 
+      rig: addForm.rig, 
+      joining_date: addForm.joining_date,
+      auth_expiry_date: addForm.auth_expiry_date || null,
+      health_cert_expiry_date: addForm.health_cert_expiry_date || null
+    });
     setAddLoading(false);
     if (error) {
-      if (error.code === '23505') return setAddError("هذا الرقم الوظيفي مستخدم بالفعل لموظف آخر. يرجى اختيار رقم مختلف.");
+      if (error.code === '23505') return setAddError("هذا الرقم الوظيفي مستخدم بالفعل.");
       return setAddError(error.message);
     }
-    
     setIsAdding(false);
-    setAddForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2', joining_date: '' });
+    setAddForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: userRig || 'B2', joining_date: '', auth_expiry_date: '', health_cert_expiry_date: '' });
     onRefresh();
   };
 
@@ -161,7 +156,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     setAddReqLoading(false);
     if (error) alert(error.message);
     else {
-      alert("تم إرسال طلب إضافة الموظف إلى الموارد البشرية.");
+      alert("تم إرسال الطلب.");
       setIsAddingReq(false);
       setAddReqForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '' });
       setSearchReq('');
@@ -169,18 +164,29 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   };
 
   const handleRemoveRequest = async (emp: Employee) => {
-    const confirmed = window.confirm(`هل أنت متأكد من طلب إزالة الموظف "${emp.name}" من ${emp.rig}؟`);
+    const confirmed = window.confirm(`هل أنت متأكد من طلب إزالة "${emp.name}"؟`);
     if (!confirmed) return;
     const { error } = await supabase.from('employee_requests').insert({ name: emp.name, employee_number: emp.employee_number, position: emp.position, nationality: emp.nationality, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id, request_type: 'REMOVE' });
     if (error) alert("Error: " + error.message);
-    else alert("تم إرسال طلب الإزالة إلى الموارد البشرية.");
+    else alert("تم إرسال الطلب.");
   };
 
   const openEdit = (emp: Employee) => {
     setEditingEmployee(emp);
     setEditError('');
     const isCustomNat = emp.nationality && !NATIONALITIES.includes(emp.nationality);
-    setEditForm({ name: emp.name, employee_number: emp.employee_number, position: emp.position || '', nationality: isCustomNat ? 'OTHER' : (emp.nationality || ''), customNationality: isCustomNat ? (emp.nationality || '') : '', rig: emp.rig || 'UNASSIGNED', is_suspended: emp.is_suspended || false, joining_date: emp.joining_date || '' });
+    setEditForm({ 
+      name: emp.name, 
+      employee_number: emp.employee_number, 
+      position: emp.position || '', 
+      nationality: isCustomNat ? 'OTHER' : (emp.nationality || ''), 
+      customNationality: isCustomNat ? (emp.nationality || '') : '', 
+      rig: emp.rig || 'UNASSIGNED', 
+      is_suspended: emp.is_suspended || false, 
+      joining_date: emp.joining_date || '',
+      auth_expiry_date: emp.auth_expiry_date || '',
+      health_cert_expiry_date: emp.health_cert_expiry_date || ''
+    });
   };
 
   const handleEdit = async (e: React.FormEvent) => {
@@ -189,11 +195,20 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     setEditLoading(true);
     setEditError('');
     const finalNat = editForm.nationality === 'OTHER' ? editForm.customNationality : editForm.nationality;
-    const { error } = await supabase.from('employees').update({ name: editForm.name, employee_number: editForm.employee_number, position: editForm.position, nationality: finalNat, rig: editForm.rig, is_suspended: editForm.is_suspended, joining_date: editForm.joining_date }).eq('id', editingEmployee.id);
-    
+    const { error } = await supabase.from('employees').update({ 
+      name: editForm.name, 
+      employee_number: editForm.employee_number, 
+      position: editForm.position, 
+      nationality: finalNat, 
+      rig: editForm.rig, 
+      is_suspended: editForm.is_suspended, 
+      joining_date: editForm.joining_date,
+      auth_expiry_date: editForm.auth_expiry_date || null,
+      health_cert_expiry_date: editForm.health_cert_expiry_date || null
+    }).eq('id', editingEmployee.id);
     setEditLoading(false);
     if (error) {
-      if (error.code === '23505') return setEditError("هذا الرقم الوظيفي مستخدم بالفعل لموظف آخر.");
+      if (error.code === '23505') return setEditError("هذا الرقم مستخدم مسبقاً.");
       return setEditError(error.message);
     }
     setEditingEmployee(null);
@@ -206,15 +221,15 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     setVacationLoading(null);
     if (error) alert("Error: " + error.message);
     else {
-      alert("تم إرسال طلب الإجازة بنجاح.");
+      alert("تم إرسال طلب الإجازة.");
       fetchActiveVacations();
     }
   };
 
   const handleExportCSV = () => {
     if (!isHr) return;
-    const headers = ['Employee Number', 'Name', 'Position', 'Nationality', 'Rig', 'Phone', 'Status', 'Joining Date'];
-    const rows = employees.map(emp => [emp.employee_number || '', emp.name || '', emp.position || '', emp.nationality || '', emp.rig || '', emp.phone || '', emp.is_suspended ? 'Suspended' : 'Active', emp.joining_date || '']);
+    const headers = ['Employee Number', 'Name', 'Position', 'Nationality', 'Rig', 'Phone', 'Status', 'Joining Date', 'Auth Expiry', 'Health Expiry'];
+    const rows = employees.map(emp => [emp.employee_number || '', emp.name || '', emp.position || '', emp.nationality || '', emp.rig || '', emp.phone || '', emp.is_suspended ? 'Suspended' : 'Active', emp.joining_date || '', emp.auth_expiry_date || '', emp.health_cert_expiry_date || '']);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -226,7 +241,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     document.body.removeChild(link);
   };
 
-  const renderEmployeeTable = (rigEmployees: Employee[], rigName: string) => (
+  const renderEmployeeTable = (rigEmployees: Employee[]) => (
     <div className="overflow-x-auto relative">
       <table className="w-full text-sm text-right">
         <thead className="bg-[#1C1815] text-[#d4b896] border-b border-[#524a43]">
@@ -244,7 +259,8 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
             <th className="px-6 py-4 font-bold tracking-wider">الاسم</th>
             <th className="px-6 py-4 font-bold tracking-wider">الرقم الوظيفي</th>
             <th className="px-6 py-4 font-bold tracking-wider">الوظيفة</th>
-            <th className="px-6 py-4 font-bold tracking-wider">تاريخ التعيين</th>
+            <th className="px-6 py-4 font-bold tracking-wider">التصريح</th>
+            <th className="px-6 py-4 font-bold tracking-wider">الصحية</th>
             <th className="px-6 py-4 font-bold tracking-wider">الحالة</th>
             {showContact && <th className="px-6 py-4 font-bold tracking-wider">الهاتف</th>}
             <th className="px-6 py-4 font-bold tracking-wider text-center">إجراءات</th>
@@ -265,10 +281,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                     />
                   </td>
                 )}
-                <td className="px-6 py-4 text-[#f4f0ea] font-medium">{emp.name}</td>
+                <td className="px-6 py-4 text-[#f4f0ea] font-medium">
+                  {emp.name}
+                  {emp.auth_status === 'ended' && <span className="block text-xs text-red-400 mt-1">تصريح منتهي</span>}
+                </td>
                 <td className="px-6 py-4 text-[#a8a19b] font-mono">{emp.employee_number}</td>
                 <td className="px-6 py-4 text-[#f4f0ea]">{emp.position}</td>
-                <td className="px-6 py-4 text-[#a8a19b] font-mono">{emp.joining_date || '-'}</td>
+                <td className="px-6 py-4 text-[#a8a19b] font-mono text-xs">{emp.auth_expiry_date || '-'}</td>
+                <td className="px-6 py-4 text-[#a8a19b] font-mono text-xs">{emp.health_cert_expiry_date || '-'}</td>
                 <td className="px-6 py-4">
                   {emp.is_suspended ? <span className="text-red-400 bg-red-400/10 border border-red-400/20 px-2.5 py-1 rounded-md text-xs font-bold">موقوف</span> : <span className="text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-md text-xs font-bold">نشط</span>}
                 </td>
@@ -288,7 +308,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                     {hasActiveRequest ? 'قيد الإجراء' : 'طلب إجازة'}
                   </button>
                   {!isHr && (
-                    <button onClick={() => handleRemoveRequest(emp)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-900/20 text-red-400 border border-red-900/30 hover:bg-red-900/40 transition-all flex items-center gap-1.5 shadow-sm" title="طلب إزالة الموظف">
+                    <button onClick={() => handleRemoveRequest(emp)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-900/20 text-red-400 border border-red-900/30 hover:bg-red-900/40 transition-all flex items-center gap-1.5 shadow-sm">
                       <UserMinus size={14} /> إزالة
                     </button>
                   )}
@@ -303,7 +323,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* HEADER & SEARCH */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-[#2a241f] p-4 rounded-xl border border-[#524a43] shadow-lg">
         <div className="relative w-full md:w-96">
           <Search className="absolute right-3 top-3 text-[#a8a19b]" size={18} />
@@ -335,7 +354,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         </div>
       </div>
 
-      {/* LIST & RIGS */}
       <div className="space-y-4 pb-24">
         {assignedRigs.length === 0 && unassignedEmployees.length === 0 ? (
           <div className="text-center text-[#a8a19b] py-8 bg-[#2a241f] rounded-xl border border-[#524a43]">لا يوجد موظفين لعرضهم.</div>
@@ -365,7 +383,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                   </div>
                   {isExpanded && (
                     <div className="border-t border-[#524a43]">
-                      {renderEmployeeTable(rigEmployees, rig)}
+                      {renderEmployeeTable(rigEmployees)}
                     </div>
                   )}
                 </div>
@@ -389,7 +407,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 </div>
                 {expandedRigs.includes('UNASSIGNED') && (
                   <div className="border-t border-amber-600/30">
-                    {renderEmployeeTable(unassignedEmployees, 'UNASSIGNED')}
+                    {renderEmployeeTable(unassignedEmployees)}
                   </div>
                 )}
               </div>
@@ -398,7 +416,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         )}
       </div>
 
-      {/* FLOATING BULK ACTION BAR (PORTAL) */}
       {isHr && selectedIds.length > 0 && typeof document !== 'undefined' && createPortal(
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1C1815] border border-[#524a43] shadow-[0_10px_40px_rgba(0,0,0,0.8)] rounded-2xl p-2 flex items-center gap-2 z-[150] w-[90%] md:w-auto justify-between md:justify-start" dir="rtl">
           <div className="px-4 text-[#f4f0ea] font-bold text-sm whitespace-nowrap">
@@ -418,7 +435,6 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         document.body
       )}
 
-      {/* BULK TRANSFER MODAL */}
       {bulkTransferModal && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[110] backdrop-blur-sm">
           <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-sm p-6 space-y-4 shadow-2xl">
@@ -440,17 +456,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
         document.body
       )}
 
-      {/* --- MODALS (ADD, EDIT, REQUEST) --- */}
-      {/* [Keep the existing Add, Edit, and Request modals here, they are unchanged] */}
-      
       {isAdding && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
           <form onSubmit={handleAdd} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">إضافة موظف جديد</h3>
-              <button type="button" onClick={() => setIsAdding(false)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
+              <button type="button" onClick={() => setIsAdding(false)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
             </div>
-            {addError && <div className="bg-red-900/20 text-red-400 border border-red-900/30 p-3 rounded-lg text-sm font-bold text-center">{addError}</div>}
+            {addError && <div className="bg-red-900/20 text-red-400 border border-red-900/30 p-3 rounded-lg text-sm text-center">{addError}</div>}
             <div className="space-y-3">
               <input type="text" placeholder="الاسم الكامل" required value={addForm.name} onChange={e => setAddForm({...addForm, name: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
               <input type="text" placeholder="الرقم الوظيفي" required value={addForm.employee_number} onChange={e => setAddForm({...addForm, employee_number: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
@@ -469,6 +482,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ التعيين</label>
                 <input type="date" value={addForm.joining_date} onChange={e => setAddForm({...addForm, joining_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
               </div>
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ انتهاء التصريح</label>
+                <input type="date" value={addForm.auth_expiry_date} onChange={e => setAddForm({...addForm, auth_expiry_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
+              </div>
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ الشهادة الصحية</label>
+                <input type="date" value={addForm.health_cert_expiry_date} onChange={e => setAddForm({...addForm, health_cert_expiry_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
+              </div>
             </div>
             <button type="submit" disabled={addLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md">
               {addLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ الموظف'}
@@ -483,7 +504,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
           <form onSubmit={handleAddRequest} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">طلب إضافة موظف إلى {userRig}</h3>
-              <button type="button" onClick={() => setIsAddingReq(false)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
+              <button type="button" onClick={() => setIsAddingReq(false)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
             </div>
             <div className="relative pb-2">
               <label className="text-xs text-[#d4b896] mb-1 block font-bold">ابحث عن موظف موجود لتعبئة البيانات</label>
@@ -500,7 +521,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
             </div>
             {addReqForm.employee_number && (
               <div className="bg-[#3a332d] border border-[#524a43] p-4 rounded-lg space-y-2 relative shadow-inner">
-                <button type="button" onClick={() => setAddReqForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '' })} className="absolute top-2 left-2 text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={16} /></button>
+                <button type="button" onClick={() => setAddReqForm({ name: '', employee_number: '', position: '', nationality: '', customNationality: '' })} className="absolute top-2 left-2 text-[#a8a19b] hover:text-[#f4f0ea]"><X size={16} /></button>
                 <div className="text-[#f4f0ea] font-bold text-lg">{addReqForm.name}</div>
                 <div className="text-sm text-[#a8a19b]">{addReqForm.employee_number} • {addReqForm.position} • {addReqForm.nationality}</div>
               </div>
@@ -515,12 +536,12 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
 
       {editingEmployee && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
-          <form onSubmit={handleEdit} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
+          <form onSubmit={handleEdit} className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
               <h3 className="text-lg font-bold text-[#f4f0ea]">تعديل بيانات الموظف</h3>
-              <button type="button" onClick={() => setEditingEmployee(null)} className="text-[#a8a19b] hover:text-[#f4f0ea] transition-colors"><X size={20} /></button>
+              <button type="button" onClick={() => setEditingEmployee(null)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
             </div>
-            {editError && <div className="bg-red-900/20 text-red-400 border border-red-900/30 p-3 rounded-lg text-sm font-bold text-center">{editError}</div>}
+            {editError && <div className="bg-red-900/20 text-red-400 border border-red-900/30 p-3 rounded-lg text-sm text-center">{editError}</div>}
             <div className="space-y-3">
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الاسم الكامل</label><input type="text" required value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
               <div><label className="text-xs text-[#d4b896] mb-1 block font-bold">الرقم الوظيفي</label><input type="text" required value={editForm.employee_number} onChange={e => setEditForm({...editForm, employee_number: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" /></div>
@@ -546,6 +567,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 <input type="date" value={editForm.joining_date} onChange={e => setEditForm({...editForm, joining_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
               </div>
               <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ انتهاء التصريح</label>
+                <input type="date" value={editForm.auth_expiry_date} onChange={e => setEditForm({...editForm, auth_expiry_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
+              </div>
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ الشهادة الصحية</label>
+                <input type="date" value={editForm.health_cert_expiry_date} onChange={e => setEditForm({...editForm, health_cert_expiry_date: e.target.value})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
+              </div>
+              <div>
                 <label className="text-xs text-[#d4b896] mb-1 block font-bold">الحالة</label>
                 <select value={editForm.is_suspended ? 'true' : 'false'} onChange={e => setEditForm({...editForm, is_suspended: e.target.value === 'true'})} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none">
                   <option value="false">نشط</option>
@@ -553,7 +582,7 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                 </select>
               </div>
             </div>
-            <button type="submit" disabled={editLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md">
+            <button type="submit" disabled={editLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md sticky bottom-0">
               {editLoading ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
             </button>
           </form>
