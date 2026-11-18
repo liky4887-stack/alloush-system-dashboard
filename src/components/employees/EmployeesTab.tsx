@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Employee } from '@/types';
-import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle, Trash2, ArrowRightLeft, ShieldAlert } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, UserPlus, Phone, X, Loader2, Edit2, Palmtree, UserMinus, Download, AlertCircle, Trash2, ArrowRightLeft, ShieldAlert, HeartPulse } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
@@ -43,10 +43,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
   const [editError, setEditError] = useState('');
   const [editForm, setEditForm] = useState({ name: '', employee_number: '', position: '', nationality: '', customNationality: '', rig: '', is_suspended: false, joining_date: '', auth_expiry_date: '', health_cert_expiry_date: '' });
 
-  // Supervisor Auth-Only Edit State
+  // Supervisor Auth/Health Edit State
   const [editingAuthEmp, setEditingAuthEmp] = useState<Employee | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authDate, setAuthDate] = useState('');
+  
+  const [requestingHealthEmp, setRequestingHealthEmp] = useState<Employee | null>(null);
+  const [healthRequestLoading, setHealthRequestLoading] = useState(false);
+  const [proposedHealthDate, setProposedHealthDate] = useState('');
 
   const fetchActiveVacations = async () => {
     const { data } = await supabase.from('vacation_requests').select('employee_number').in('status', ['pending', 'approved']);
@@ -229,6 +233,35 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
     onRefresh();
   };
 
+  // Supervisor Health Cert Request Logic
+  const openHealthRequest = (emp: Employee) => {
+    setRequestingHealthEmp(emp);
+    setProposedHealthDate(emp.health_cert_expiry_date || '');
+  };
+
+  const handleHealthRequest = async () => {
+    if (!requestingHealthEmp || !proposedHealthDate) return;
+    setHealthRequestLoading(true);
+    
+    const { error } = await supabase.from('health_cert_requests').insert({
+      employee_id: requestingHealthEmp.id,
+      employee_number: requestingHealthEmp.employee_number,
+      employee_name: requestingHealthEmp.name,
+      rig: requestingHealthEmp.rig,
+      requested_by: (await supabase.auth.getUser()).data.user?.id,
+      proposed_date: proposedHealthDate,
+      status: 'pending'
+    });
+
+    setHealthRequestLoading(false);
+    if (error) {
+      alert(error.message);
+    } else {
+      alert("تم إرسال طلب تحديث الشهادة الصحية إلى الموارد البشرية.");
+      setRequestingHealthEmp(null);
+    }
+  };
+
   const handleVacationRequest = async (emp: Employee) => {
     setVacationLoading(emp.id);
     const { error } = await supabase.from('vacation_requests').insert({ employee_number: emp.employee_number, employee_name: emp.name, rig: emp.rig, requested_by: (await supabase.auth.getUser()).data.user?.id });
@@ -317,9 +350,14 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
                       <Edit2 size={16} />
                     </button>
                   ) : (
-                    <button onClick={() => openAuthEdit(emp)} className="px-3 py-1.5 rounded-lg text-xs font-bold bg-[#3a332d] hover:bg-[#524a43] text-[#d4b896] border border-[#524a43] transition-all flex items-center gap-1.5 shadow-sm" title="تجديد التصريح">
-                      <ShieldAlert size={14} /> تجديد التصريح
-                    </button>
+                    <>
+                      <button onClick={() => openAuthEdit(emp)} className="px-2 py-1.5 rounded-lg text-xs font-bold bg-[#3a332d] hover:bg-[#524a43] text-[#d4b896] border border-[#524a43] transition-all flex items-center gap-1 shadow-sm" title="تجديد التصريح">
+                        <ShieldAlert size={14} /> تصريح
+                      </button>
+                      <button onClick={() => openHealthRequest(emp)} className="px-2 py-1.5 rounded-lg text-xs font-bold bg-[#3a332d] hover:bg-[#524a43] text-[#d4b896] border border-[#524a43] transition-all flex items-center gap-1 shadow-sm" title="طلب تجديد الشهادة الصحية">
+                        <HeartPulse size={14} /> صحة
+                      </button>
+                    </>
                   )}
                   <button onClick={() => handleVacationRequest(emp)} disabled={vacationLoading === emp.id || hasActiveRequest} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm border ${hasActiveRequest ? 'bg-[#3a332d] text-[#a8a19b] border-[#524a43] cursor-not-allowed' : 'bg-amber-600/20 text-amber-500 border-amber-600/30 hover:bg-amber-600/30'}`}>
                     {vacationLoading === emp.id ? <Loader2 size={14} className="animate-spin" /> : <Palmtree size={14} />}
@@ -489,6 +527,27 @@ export default function EmployeesTab({ employees, onRefresh, isHr, userRig, init
             </div>
             <button onClick={handleAuthUpdate} disabled={authLoading} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md">
               {authLoading ? <Loader2 className="animate-spin" size={18} /> : 'تحديث التصريح'}
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* SUPERVISOR HEALTH CERT REQUEST MODAL */}
+      {requestingHealthEmp && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
+          <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-sm p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-bold text-[#f4f0ea]">طلب تحديث الشهادة الصحية</h3>
+              <button onClick={() => setRequestingHealthEmp(null)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
+            </div>
+            <div className="text-sm text-[#a8a19b] mb-4">{requestingHealthEmp.name} ({requestingHealthEmp.employee_number})</div>
+            <div>
+              <label className="block text-sm font-bold text-[#d4b896] mb-2">التاريخ المقترح للشهادة الصحية</label>
+              <input type="date" value={proposedHealthDate} onChange={e => setProposedHealthDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-3 px-3 text-[#f4f0ea] focus:outline-none focus:border-[#d4b896]" style={{ colorScheme: 'dark' }} />
+            </div>
+            <button onClick={handleHealthRequest} disabled={healthRequestLoading || !proposedHealthDate} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 shadow-md disabled:opacity-50">
+              {healthRequestLoading ? <Loader2 className="animate-spin" size={18} /> : 'إرسال الطلب إلى HR'}
             </button>
           </div>
         </div>,

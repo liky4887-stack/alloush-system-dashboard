@@ -26,6 +26,7 @@ export type TravelMode = 'road_half_fly' | 'fly' | 'car';
 export type RequestStatus = 'pending' | 'approved' | 'rejected';
 export type VacationStatus = 'pending' | 'approved' | 'denied' | 'completed';
 export type EmployeeRequestStatus = 'pending' | 'approved' | 'denied';
+export type HealthCertStatus = 'pending' | 'approved' | 'denied';
 
 export interface CpoRequest {
   id: string;
@@ -72,6 +73,19 @@ export interface EmployeeRequest {
   requested_by: string;
   status: EmployeeRequestStatus;
   request_type: 'ADD' | 'REMOVE';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HealthCertRequest {
+  id: string;
+  employee_id: string;
+  employee_number: string;
+  employee_name: string;
+  rig: string;
+  requested_by: string;
+  proposed_date: string;
+  status: HealthCertStatus;
   created_at: string;
   updated_at: string;
 }
