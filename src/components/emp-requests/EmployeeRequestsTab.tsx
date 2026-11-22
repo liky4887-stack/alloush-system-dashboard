@@ -126,7 +126,21 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
     onRefreshEmployees();
   };
 
+  
+  const handleClearProcessedRequests = async () => {
+    if (!window.confirm('هل أنت متأكد من مسح جميع الطلبات المقبولة والمرفوضة؟')) return;
+    setActionLoading('clear');
+    const { error } = await supabase.rpc('hr_archive_processed_employee_requests');
+    if (error) {
+      alert('حدث خطأ أثناء المسح: ' + error.message);
+    } else {
+      setRequests((prev) => prev.filter((r) => r.status === 'pending'));
+    }
+    setActionLoading(null);
+  };
+
   return (
+
     <div className="space-y-6" dir="rtl">
       <div className="flex justify-between items-center mb-4">
         <div className="flex gap-2 border-b border-[#524a43] pb-2 overflow-x-auto">
@@ -138,10 +152,19 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
           </button>
         </div>
         {isHr && (
-          <button onClick={() => setIsAdding(true)} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 shadow-sm">
-            <UserPlus size={16} /> إضافة موظف مباشرة
-          </button>
-        )}
+            <div className="flex items-center gap-4">
+              <button onClick={() => setIsAdding(true)} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
+                <UserPlus size={16} /> إضافة موظف مباشرة
+              </button>
+              <button
+                onClick={handleClearProcessedRequests}
+                disabled={actionLoading === 'clear'}
+                className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 text-red-400 border border-red-500/30 rounded-xl transition-colors text-xs font-medium flex items-center gap-1"
+              >
+                {actionLoading === 'clear' ? 'جاري المسح...' : 'مسح الطلبات المنجزة 🗑️'}
+              </button>
+            </div>
+          )}
       </div>
 
       {loading ? (
