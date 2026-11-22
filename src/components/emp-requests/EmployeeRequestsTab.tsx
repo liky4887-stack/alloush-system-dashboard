@@ -46,14 +46,7 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'health_cert_requests' }, fetchRequests)
       .subscribe();
 
-    
-  const handleClearProcessedRequests = async () => {
-    const { error } = await supabase.rpc('hr_archive_processed_employee_requests');
-    if (error) alert('حدث خطأ أثناء المسح: ' + error.message);
-    else window.location.reload();
-  };
-
-  return () => {
+    return () => {
       supabase.removeChannel(channel);
     };
   }, [isHr, userRig]);
@@ -147,12 +140,6 @@ export default function EmployeeRequestsTab({ isHr, userRig, onRefreshEmployees 
         {isHr && (
           <button onClick={() => setIsAdding(true)} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 shadow-sm">
             <UserPlus size={16} /> إضافة موظف مباشرة
-              <button 
-                onClick={handleClearProcessedRequests}
-                className="ml-4 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl transition-colors text-xs font-medium"
-              >
-                مسح الطلبات المنجزة 🗑️
-              </button>
           </button>
         )}
       </div>
