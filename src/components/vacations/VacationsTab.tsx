@@ -15,6 +15,9 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
   const [editTravelMode, setEditTravelMode] = useState<TravelMode>('fly');
   const [editFlight, setEditFlight] = useState(false);
   const [editHotel, setEditHotel] = useState(false);
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
 
@@ -53,9 +56,9 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
   const handleStopVacation = async (id: string) => {
     if (!window.confirm("هل أنت متأكد من إنهاء هذه الإجازة؟ سيتم تسجيل تاريخ العودة للعمل.")) return;
     setActionLoading(id);
-    await supabase.from('vacation_requests').update({ 
-      status: 'completed', 
-      end_date: new Date().toISOString() 
+    await supabase.from('vacation_requests').update({
+      status: 'completed',
+      end_date: new Date().toISOString()
     }).eq('id', id);
     setActionLoading(null);
     fetchRequests();
@@ -83,6 +86,8 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
     setEditTravelMode((req.travel_mode as TravelMode) || 'fly');
     setEditFlight(req.flight_ticket_confirmed || false);
     setEditHotel(req.hotel_confirmed || false);
+    setEditStartDate(req.start_date || new Date().toISOString().split('T')[0]);
+    setEditEndDate(req.end_date ? req.end_date.split('T')[0] : '');
   };
 
   const handleApprove = async () => {
@@ -96,12 +101,20 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
     await supabase.from('vacation_requests').update({
       status: 'approved',
-      destination: 'الهيب', 
+      destination: 'الهيب',
       travel_mode: editTravelMode,
       flight_ticket_confirmed: editFlight,
       hotel_confirmed: editHotel,
       route_stops: route
     }).eq('id', editingReq.id);
+
+    if (editStartDate && editEndDate) {
+      await supabase.rpc('hr_set_vacation_schedule', {
+        p_request_id: editingReq.id,
+        p_start_date: editStartDate,
+        p_end_date: editEndDate
+      });
+    }
 
     setActionLoading(null);
     setEditingReq(null);
@@ -121,7 +134,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
             </button>
           ))}
         </div>
-        
+
         {isHr && tab === 'denied' && requests.length > 0 && (
           <button onClick={handleClearAll} disabled={isClearing} className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50">
             {isClearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} مسح الكل
@@ -197,6 +210,17 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
             </div>
 
             <div className="text-sm text-[#a8a19b] mb-4 font-mono">{editingReq.employee_name} ({editingReq.employee_number})</div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-[#d4b896] mb-1">تاريخ الخروج (المتوقع)</label>
+                <input type="date" value={editStartDate} onChange={e => setEditStartDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea]" style={{ colorScheme: 'dark' }} />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-[#d4b896] mb-1">تاريخ العودة (المتوقع)</label>
+                <input type="date" value={editEndDate} onChange={e => setEditEndDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea]" style={{ colorScheme: 'dark' }} />
+              </div>
+            </div>
 
             <div>
               <label className="block text-sm font-bold text-[#d4b896] mb-1">الوجهة النهائية</label>

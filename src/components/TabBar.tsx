@@ -1,5 +1,5 @@
 import { LiquidNavbar, LiquidNavItem } from '@/components/ui/liquid-glass-navbar';
-import { LayoutDashboard, Users, Palmtree, UserPlus, CalendarDays, ShieldAlert, ShieldX } from 'lucide-react';
+import { LayoutDashboard, Users, Palmtree, UserPlus, ShieldAlert, ShieldX, PlaneTakeoff, ClipboardList } from 'lucide-react';
 import type { Tab } from '@/types';
 
 interface TabBarProps {
@@ -11,8 +11,10 @@ interface TabBarProps {
 export default function TabBar({ active, onChange, isHr }: TabBarProps) {
   const tabItems: { id: Tab; label: string; icon: React.ReactNode }[] = [
     ...(isHr ? [{ id: 'overview' as Tab, label: 'نظرة عامة', icon: <LayoutDashboard size={18} /> }] : []),
+    { id: 'crew-change', label: 'الكرو تشينج', icon: <PlaneTakeoff size={18} /> },
     { id: 'employees', label: 'الموظفين', icon: <Users size={18} /> },
     { id: 'vacations', label: 'الإجازات', icon: <Palmtree size={18} /> },
+    { id: 'timesheet', label: 'التايم شيت', icon: <ClipboardList size={18} /> },
     ...(isHr ? [{ id: 'ended-vacations' as Tab, label: 'الإجازات المنتهية', icon: <Palmtree size={18} /> }] : []),
     { id: 'emp-requests', label: 'الطلبات', icon: <UserPlus size={18} /> },
     ...(isHr ? [

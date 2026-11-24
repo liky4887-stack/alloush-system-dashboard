@@ -1,49 +1,35 @@
-export type Tab = 'overview' | 'crew-change' | 'employees' | 'vacations' | 'emp-requests' | 'expiring-docs' | 'ended-docs' | 'ended-vacations';
-
-export interface Rig {
-  id: string;
-  label: string;
-  total: number;
-  suspended: number;
-}
+export type Tab = 'overview' | 'crew-change' | 'employees' | 'vacations' | 'emp-requests' | 'expiring-docs' | 'ended-docs' | 'ended-vacations' | 'timesheet';
+export type TravelMode = 'fly' | 'car' | 'road_half_fly';
 
 export interface Employee {
   id: string;
   employee_number: string;
   name: string;
-  position: string;
-  nationality: string;
-  phone: string;
-  rig: string;
+  position?: string;
+  nationality?: string;
+  rig?: string;
+  phone?: string;
   is_suspended?: boolean;
   joining_date?: string;
-  auth_expiry_date?: string | null;
-  health_cert_expiry_date?: string | null;
-  auth_status?: 'active' | 'ended';
+  auth_expiry_date?: string;
+  health_cert_expiry_date?: string;
+  auth_status?: string;
 }
-
-export type TravelMode = 'road_half_fly' | 'fly' | 'car';
-export type RequestStatus = 'pending' | 'approved' | 'rejected';
-export type VacationStatus = 'pending' | 'approved' | 'denied' | 'completed';
-export type EmployeeRequestStatus = 'pending' | 'approved' | 'denied';
-export type HealthCertStatus = 'pending' | 'approved' | 'denied';
 
 export interface CpoRequest {
   id: string;
-  employee_number: string;
   employee_name: string;
-  grade: string;
-  nationality: string;
-  destination: string;
-  final_destination: string;
+  employee_number: string;
+  grade?: string;
+  nationality?: string;
+  destination?: string;
+  final_destination?: string;
   route_stops: string[];
-  travel_mode: TravelMode;
-  flight_ticket_confirmed: boolean;
-  hotel_confirmed: boolean;
-  status: RequestStatus;
-  created_at: string;
-  updated_at: string;
-  rig: string;
+  travel_mode?: string;
+  status: string;
+  rig?: string;
+  flight_ticket_confirmed?: boolean;
+  hotel_confirmed?: boolean;
 }
 
 export interface VacationRequest {
@@ -52,40 +38,49 @@ export interface VacationRequest {
   employee_name: string;
   rig: string;
   requested_by: string;
-  status: VacationStatus;
-  destination: string | null;
-  travel_mode: string | null;
-  flight_ticket_confirmed: boolean;
-  hotel_confirmed: boolean;
-  route_stops: string[] | null;
-  created_at: string;
-  updated_at: string;
-  end_date?: string | null;
+  status: string;
+  destination?: string;
+  travel_mode?: string;
+  flight_ticket_confirmed?: boolean;
+  hotel_confirmed?: boolean;
+  route_stops?: string[];
+  end_date?: string;
+  start_date?: string;
+  actual_start_date?: string;
+  actual_end_date?: string;
 }
 
-export interface EmployeeRequest {
+export interface CrewChangeRow {
   id: string;
-  name: string;
-  employee_number: string;
-  position: string | null;
-  nationality: string | null;
-  rig: string;
-  requested_by: string;
-  status: EmployeeRequestStatus;
-  request_type: 'ADD' | 'REMOVE';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface HealthCertRequest {
-  id: string;
-  employee_id: string;
   employee_number: string;
   employee_name: string;
   rig: string;
-  requested_by: string;
-  proposed_date: string;
-  status: HealthCertStatus;
-  created_at: string;
-  updated_at: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  actual_start_date: string | null;
+  actual_end_date: string | null;
+  notes: string | null;
+  phase: 'upcoming_departure' | 'on_vacation' | 'returned' | 'other';
+  days_until_next_event: number | null;
+  days_on_vacation: number | null;
+}
+
+export interface TimesheetRow {
+  id: string;
+  employee_number: string;
+  employee_name: string;
+  rig: string;
+  actual_start_date: string;
+  actual_end_date: string | null;
+  vacation_days: number;
+  rig_days_before: number | null;
+  is_currently_on_vacation: boolean;
+}
+
+export interface Rig {
+  id: string;
+  label: string;
+  total: number;
+  suspended: number;
 }
