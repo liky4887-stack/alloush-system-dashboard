@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CpoRequest, Employee, Tab } from '@/types';
-import { Users, AlertTriangle, Clock, Search, Edit2, X, Loader2 } from 'lucide-react';
+import { Users, AlertTriangle, Clock, Search, Edit2, X, Loader2, PlaneTakeoff, HeartPulse } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { NATIONALITIES } from '@/data/mock';
 
@@ -23,6 +23,28 @@ interface Props {
 
 export default function OverviewTab({ requests, employees, onRigClick, onNavigate, isHr, onRefresh }: Props) {
   const [search, setSearch] = useState('');
+  const [dashboardStats, setDashboardStats] = useState({
+    total_employees: 0,
+    on_vacation_now: 0,
+    expiring_docs_30d: 0,
+    expiring_health_30d: 0,
+    pending_vacations: 0,
+    pending_emp_requests: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { data } = await supabase.from('v_hr_dashboard').select('*').single();
+      if (data) setDashboardStats(data);
+    };
+    fetchStats();
+
+    const channel = supabase.channel('realtime-dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        fetchStats();
+      }).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
   
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [editLoading, setEditLoading] = useState(false);
@@ -105,18 +127,37 @@ export default function OverviewTab({ requests, employees, onRigClick, onNavigat
 
   return (
     <div className="space-y-8" dir="rtl">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div onClick={() => onNavigate('employees')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg">
-          <div><div className="text-[#a8a19b] text-sm mb-1">إجمالي الموظفين</div><div className="text-3xl font-bold text-[#f4f0ea]">{totalEmployees}</div></div>
-          <Users size={32} className="text-[#d4b896]" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div onClick={() => onNavigate('crew-change')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex flex-col justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-amber-500/50 shadow-lg">
+          <div className="flex justify-between items-start mb-4">
+            <div className="text-[#a8a19b] text-sm font-bold">في أجازة الآن</div>
+            <PlaneTakeoff size={24} className="text-amber-500" />
+          </div>
+          <div className="text-3xl font-bold text-[#f4f0ea]">{dashboardStats.on_vacation_now}</div>
         </div>
-        <div onClick={() => onNavigate('emp-requests')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg">
-          <div><div className="text-[#a8a19b] text-sm mb-1">الطلبات المعلقة</div><div className="text-3xl font-bold text-[#f4f0ea]">{totalPending}</div></div>
-          <Clock size={32} className="text-amber-500" />
+        
+        <div onClick={() => onNavigate('expiring-docs')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex flex-col justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-red-500/50 shadow-lg">
+          <div className="flex justify-between items-start mb-4">
+            <div className="text-[#a8a19b] text-sm font-bold">تصاريح تنتهي (30 يوم)</div>
+            <AlertTriangle size={24} className="text-red-500" />
+          </div>
+          <div className="text-3xl font-bold text-[#f4f0ea]">{dashboardStats.expiring_docs_30d}</div>
         </div>
-        <div onClick={() => onNavigate('employees')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex items-center justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-[#d4b896]/50 shadow-lg">
-          <div><div className="text-[#a8a19b] text-sm mb-1">الموظفين الموقوفين</div><div className="text-3xl font-bold text-[#f4f0ea]">{totalSuspended}</div></div>
-          <AlertTriangle size={32} className="text-red-500" />
+
+        <div onClick={() => onNavigate('expiring-docs')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex flex-col justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-emerald-500/50 shadow-lg">
+          <div className="flex justify-between items-start mb-4">
+            <div className="text-[#a8a19b] text-sm font-bold">شهادات صحية تنتهي</div>
+            <HeartPulse size={24} className="text-emerald-500" />
+          </div>
+          <div className="text-3xl font-bold text-[#f4f0ea]">{dashboardStats.expiring_health_30d}</div>
+        </div>
+
+        <div onClick={() => onNavigate('vacations')} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-6 flex flex-col justify-between cursor-pointer transition-all hover:bg-[#4a4038] hover:border-blue-500/50 shadow-lg">
+          <div className="flex justify-between items-start mb-4">
+            <div className="text-[#a8a19b] text-sm font-bold">طلبات إجازة معلقة</div>
+            <Clock size={24} className="text-blue-500" />
+          </div>
+          <div className="text-3xl font-bold text-[#f4f0ea]">{dashboardStats.pending_vacations}</div>
         </div>
       </div>
 

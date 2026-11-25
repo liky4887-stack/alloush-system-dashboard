@@ -43,10 +43,14 @@ export default function App() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || !profile) return;
-    const channel = supabase.channel('realtime-employees')
+    const channel = supabase.channel('realtime-global')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
         if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-        fetchTimeoutRef.current = setTimeout(() => { fetchData(profile.role, profile.rig); }, 1500);
+        fetchTimeoutRef.current = setTimeout(() => { fetchData(profile.role, profile.rig); }, 1000);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vacation_requests' }, () => {
+        if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+        fetchTimeoutRef.current = setTimeout(() => { fetchData(profile.role, profile.rig); }, 1000);
       }).subscribe();
     return () => { supabase.removeChannel(channel); if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current); };
   }, [profile]);
