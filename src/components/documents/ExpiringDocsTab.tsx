@@ -72,6 +72,7 @@ export default function ExpiringDocsTab({ employees, onRefresh }: { employees: E
           </div>
           <div>
             <h2 className="text-xl font-bold text-[#f4f0ea]">التصاريح والشهادات الصحية</h2>
+<div className="bg-amber-900/30 text-amber-500 px-3 py-1 rounded-full text-sm font-bold border border-amber-900/50 mb-4 inline-block">عدد الموظفين: {employees?.length || 0}</div>
             <p className="text-sm text-[#a8a19b]">يتم عرض أول 50 موظف فقط. استخدم البحث للعثور على البقية.</p>
           </div>
         </div>

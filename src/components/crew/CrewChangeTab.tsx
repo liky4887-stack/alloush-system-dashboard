@@ -1,18 +1,30 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
-import { CrewChangeRow } from '@/types';
-import { Loader2, PlaneLanding, PlaneTakeoff, CalendarDays } from 'lucide-react';
+import { CrewChangeRow, Employee } from '@/types';
+import { Loader2, PlaneLanding, PlaneTakeoff, CalendarDays, Edit2, Plus, X, Search } from 'lucide-react';
 
 interface Props {
   isHr: boolean;
   userRig: string | null;
+  employees: Employee[];
   onRefresh: () => void;
 }
 
-export default function CrewChangeTab({ isHr, userRig, onRefresh }: Props) {
+export default function CrewChangeTab({ isHr, userRig, employees, onRefresh }: Props) {
   const [rows, setRows] = useState<CrewChangeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Modals state
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingReq, setEditingReq] = useState<CrewChangeRow | null>(null);
+  
+  // Form state
+  const [search, setSearch] = useState('');
+  const [selectedEmp, setSelectedEmp] = useState<Employee | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const fetchCrewChange = async () => {
     setLoading(true);
@@ -54,14 +66,78 @@ export default function CrewChangeTab({ isHr, userRig, onRefresh }: Props) {
     else { fetchCrewChange(); onRefresh(); }
   };
 
+  const handleAddVacation = async () => {
+    if (!selectedEmp || !startDate || !endDate) return alert('يرجى اختيار الموظف وتحديد التواريخ');
+    setActionLoading('new');
+    
+    // نضيف الطلب كـ approved مباشرة عشان يظهر في الكرو تشينج
+    const { error } = await supabase.from('vacation_requests').insert({
+      employee_number: selectedEmp.employee_number,
+      employee_name: selectedEmp.name,
+      rig: selectedEmp.rig || 'UNASSIGNED',
+      requested_by: (await supabase.auth.getUser()).data.user?.id,
+      status: 'approved',
+      start_date: startDate,
+      end_date: endDate
+    });
+
+    setActionLoading(null);
+    if (error) alert(error.message);
+    else {
+      setIsAdding(false);
+      setSelectedEmp(null);
+      setSearch('');
+      setStartDate('');
+      setEndDate('');
+      fetchCrewChange();
+      onRefresh();
+    }
+  };
+
+  const handleEditVacation = async () => {
+    if (!editingReq || !startDate || !endDate) return;
+    setActionLoading('edit');
+    const { error } = await supabase.rpc('hr_set_vacation_schedule', {
+      p_request_id: editingReq.id,
+      p_start_date: startDate,
+      p_end_date: endDate
+    });
+    setActionLoading(null);
+    if (error) alert(error.message);
+    else {
+      setEditingReq(null);
+      fetchCrewChange();
+      onRefresh();
+    }
+  };
+
+  const openEditModal = (req: CrewChangeRow) => {
+    setEditingReq(req);
+    setStartDate(req.start_date || '');
+    setEndDate(req.end_date || '');
+  };
+
   const departures = rows.filter(r => r.phase === 'upcoming_departure');
   const returns = rows.filter(r => r.phase === 'on_vacation');
+  
+  const filteredEmployees = search.length >= 2 
+    ? employees.filter(e => e.name.includes(search) || e.employee_number.includes(search))
+    : [];
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-[#d4b896]" size={32} /></div>;
 
   return (
     <div className="space-y-8" dir="rtl">
+      {isHr && (
+        <div className="flex justify-end">
+          <button onClick={() => { setIsAdding(true); setSelectedEmp(null); setStartDate(''); setEndDate(''); setSearch(''); }} className="bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] px-4 py-2 rounded-lg font-bold transition-colors flex items-center gap-2 shadow-md">
+            <Plus size={18} /> إضافة أجازة جديدة
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* قسم المسافرين */}
         <div className="bg-[#3a332d] border border-[#524a43] rounded-xl overflow-hidden shadow-lg">
           <div className="bg-[#2a241f] px-6 py-4 border-b border-[#524a43] flex justify-between items-center">
             <h2 className="text-lg font-bold text-[#f4f0ea] flex items-center gap-2">
@@ -84,17 +160,25 @@ export default function CrewChangeTab({ isHr, userRig, onRefresh }: Props) {
                       {req.start_date ? `تاريخ الخروج: ${req.start_date}` : 'لم يتم تحديد تاريخ'}
                     </div>
                   </div>
-                  {isHr && (
-                    <button onClick={() => handleSignOff(req.id)} disabled={actionLoading === req.id} className="bg-amber-600/20 hover:bg-amber-600/40 text-amber-500 border border-amber-600/50 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50">
-                      {actionLoading === req.id ? <Loader2 className="animate-spin" size={16} /> : 'تأكيد الخروج'}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isHr && (
+                      <>
+                        <button onClick={() => openEditModal(req)} className="p-2 bg-[#3a332d] hover:bg-[#524a43] text-[#d4b896] rounded-lg transition-colors" title="تعديل التواريخ">
+                          <Edit2 size={16} />
+                        </button>
+                        <button onClick={() => handleSignOff(req.id)} disabled={actionLoading === req.id} className="bg-amber-600/20 hover:bg-amber-600/40 text-amber-500 border border-amber-600/50 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50">
+                          {actionLoading === req.id ? <Loader2 className="animate-spin" size={16} /> : 'تأكيد الخروج'}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
 
+        {/* قسم الراجعين */}
         <div className="bg-[#3a332d] border border-[#524a43] rounded-xl overflow-hidden shadow-lg">
           <div className="bg-[#2a241f] px-6 py-4 border-b border-[#524a43] flex justify-between items-center">
             <h2 className="text-lg font-bold text-[#f4f0ea] flex items-center gap-2">
@@ -128,6 +212,83 @@ export default function CrewChangeTab({ isHr, userRig, onRefresh }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Add Modal */}
+      {isAdding && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
+          <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
+              <h3 className="text-lg font-bold text-[#f4f0ea]">إضافة أجازة يدوياً (HR)</h3>
+              <button onClick={() => setIsAdding(false)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
+            </div>
+            
+            <div className="relative">
+              <label className="text-xs text-[#d4b896] mb-1 block font-bold">ابحث عن موظف</label>
+              <input type="text" placeholder="ابحث بالاسم أو الرقم..." value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" />
+              {search.length >= 2 && !selectedEmp && (
+                <div className="absolute z-10 w-full mt-1 bg-[#1C1815] border border-[#524a43] rounded-lg max-h-40 overflow-y-auto shadow-xl">
+                  {filteredEmployees.map(emp => (
+                    <div key={emp.id} onClick={() => { setSelectedEmp(emp); setSearch(emp.name); }} className="p-2.5 hover:bg-[#3a332d] cursor-pointer text-sm text-[#f4f0ea] border-b border-[#524a43]/50 last:border-0">
+                      {emp.name} - {emp.employee_number} ({emp.rig})
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedEmp && (
+                <div className="mt-2 p-3 bg-[#3a332d] rounded-lg border border-[#524a43] text-sm text-[#f4f0ea]">
+                  تم اختيار: <span className="font-bold">{selectedEmp.name}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ الخروج</label>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea]" style={{ colorScheme: 'dark' }} />
+              </div>
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ العودة</label>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea]" style={{ colorScheme: 'dark' }} />
+              </div>
+            </div>
+
+            <button onClick={handleAddVacation} disabled={actionLoading === 'new' || !selectedEmp || !startDate || !endDate} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4 disabled:opacity-50">
+              {actionLoading === 'new' ? <Loader2 className="animate-spin" size={18} /> : 'حفظ الأجازة'}
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Edit Modal */}
+      {editingReq && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-[100] backdrop-blur-sm">
+          <div className="bg-[#2a241f] rounded-xl border border-[#524a43] w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center mb-4 border-b border-[#524a43] pb-3">
+              <h3 className="text-lg font-bold text-[#f4f0ea]">تعديل تواريخ الأجازة</h3>
+              <button onClick={() => setEditingReq(null)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
+            </div>
+            
+            <div className="text-sm text-[#a8a19b] mb-4">{editingReq.employee_name}</div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ الخروج</label>
+                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea]" style={{ colorScheme: 'dark' }} />
+              </div>
+              <div>
+                <label className="text-xs text-[#d4b896] mb-1 block font-bold">تاريخ العودة</label>
+                <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea]" style={{ colorScheme: 'dark' }} />
+              </div>
+            </div>
+
+            <button onClick={handleEditVacation} disabled={actionLoading === 'edit'} className="w-full bg-[#d4b896] hover:bg-[#c4a886] text-[#2a241f] font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 mt-4">
+              {actionLoading === 'edit' ? <Loader2 className="animate-spin" size={18} /> : 'حفظ التعديلات'}
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

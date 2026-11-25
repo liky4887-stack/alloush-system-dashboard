@@ -23,7 +23,7 @@ export default function VacationsTab({ isHr, userRig, employees }: { isHr: boole
 
   const fetchRequests = async () => {
     setLoading(true);
-    let query = supabase.from('vacation_requests').select('*').eq('status', tab).order('created_at', { ascending: false });
+    let query = supabase.from('vacation_requests').select('*').eq('status', tab).order('start_date', { ascending: true, nullsFirst: false });
     if (!isHr && userRig) query = query.eq('rig', userRig);
     const { data } = await query;
     if (data) setRequests(data as VacationRequest[]);

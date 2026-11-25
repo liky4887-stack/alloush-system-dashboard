@@ -141,7 +141,7 @@ export default function App() {
             <div className="mb-8"><TabBar active={activeTab} onChange={handleTabChange} isHr={isHr} /></div>
             <div className="gw-view mt-4 text-[#f4f0ea]">
               {activeTab === 'overview' && isHr && (<OverviewTab requests={requests} employees={employees} onRigClick={(rig) => { setTargetRig(rig); setActiveTab('employees'); }} onNavigate={handleTabChange} isHr={isHr} onRefresh={() => fetchData(profile.role, profile.rig)} />)}
-              {activeTab === 'crew-change' && (<CrewChangeTab isHr={isHr} userRig={profile.rig} onRefresh={() => fetchData(profile.role, profile.rig)} />)}
+              {activeTab === 'crew-change' && (<CrewChangeTab isHr={isHr} userRig={profile.rig} employees={employees} onRefresh={() => fetchData(profile.role, profile.rig)} />)}
               {activeTab === 'employees' && (<EmployeesTab employees={employees} onRefresh={() => fetchData(profile.role, profile.rig)} isHr={isHr} userRig={profile.rig} initialRig={targetRig} />)}
               {activeTab === 'vacations' && (<VacationsTab isHr={isHr} userRig={profile.rig} employees={employees} />)}
               {activeTab === 'timesheet' && (<TimesheetTab isHr={isHr} userRig={profile.rig} />)}
