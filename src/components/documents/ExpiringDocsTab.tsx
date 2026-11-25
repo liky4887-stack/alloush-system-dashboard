@@ -1,35 +1,84 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Employee } from '@/types';
-import { ShieldAlert, Calendar, HeartPulse, Check, Edit2, Loader2, X, Search } from 'lucide-react';
+import { ShieldAlert, Calendar, HeartPulse, Check, Edit2, Loader2, X, Search, CalendarDays, Filter } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 export default function ExpiringDocsTab({ employees, onRefresh }: { employees: Employee[], onRefresh: () => void }) {
   const [search, setSearch] = useState('');
+  const [quickFilter, setQuickFilter] = useState('30'); // '30', '60', '90', 'all', 'custom'
+  
+  const [targetDate, setTargetDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  });
+  
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Edit Modal State
   const [editingEmp, setEditingEmp] = useState<Employee | null>(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editAuthDate, setEditAuthDate] = useState('');
   const [editHealthDate, setEditHealthDate] = useState('');
 
-  // Filter, search, and limit to 50 to prevent lag
+  const handleQuickFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setQuickFilter(val);
+    const d = new Date();
+    if (val === '30') {
+      d.setDate(d.getDate() + 30);
+      setTargetDate(d.toISOString().split('T')[0]);
+    } else if (val === '60') {
+      d.setDate(d.getDate() + 60);
+      setTargetDate(d.toISOString().split('T')[0]);
+    } else if (val === '90') {
+      d.setDate(d.getDate() + 90);
+      setTargetDate(d.toISOString().split('T')[0]);
+    } else if (val === 'all') {
+      setTargetDate('');
+    }
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTargetDate(e.target.value);
+    setQuickFilter('custom');
+  };
+
   const displayedEmployees = useMemo(() => {
-    const activeDocs = employees.filter(emp => emp.auth_status === 'active');
-    const filtered = activeDocs.filter(emp => 
-      emp.name.includes(search) || emp.employee_number.includes(search)
-    );
+    let activeDocs = employees.filter(emp => emp.auth_status === 'active');
     
-    // Sort by closest expiration
-    filtered.sort((a, b) => {
-      if (!a.auth_expiry_date) return 1;
-      if (!b.auth_expiry_date) return -1;
-      return new Date(a.auth_expiry_date).getTime() - new Date(b.auth_expiry_date).getTime();
+    if (search) {
+      activeDocs = activeDocs.filter(emp =>
+        emp.name.includes(search) || emp.employee_number.includes(search)
+      );
+    }
+
+    if (targetDate) {
+      const targetTime = new Date(targetDate).getTime() + (24 * 60 * 60 * 1000 - 1); 
+      activeDocs = activeDocs.filter(emp => {
+        const getEarliest = (e: Employee) => {
+          const auth = e.auth_expiry_date ? new Date(e.auth_expiry_date).getTime() : Infinity;
+          const health = e.health_cert_expiry_date ? new Date(e.health_cert_expiry_date).getTime() : Infinity;
+          return Math.min(auth, health);
+        };
+        
+        const earliest = getEarliest(emp);
+        if (earliest === Infinity) return false;
+        return earliest <= targetTime;
+      });
+    }
+
+    activeDocs.sort((a, b) => {
+      const getEarliest = (e: Employee) => {
+        const auth = e.auth_expiry_date ? new Date(e.auth_expiry_date).getTime() : Infinity;
+        const health = e.health_cert_expiry_date ? new Date(e.health_cert_expiry_date).getTime() : Infinity;
+        return Math.min(auth, health);
+      };
+      return getEarliest(a) - getEarliest(b);
     });
 
-    return filtered.slice(0, 50);
-  }, [employees, search]);
+    return activeDocs;
+  }, [employees, search, targetDate]);
 
   const getDaysLeft = (dateString?: string | null) => {
     if (!dateString) return null;
@@ -65,48 +114,84 @@ export default function ExpiringDocsTab({ employees, onRefresh }: { employees: E
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#2a241f] p-6 rounded-xl border border-[#524a43] shadow-lg gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-[#2a241f] p-6 rounded-xl border border-[#524a43] shadow-lg gap-4">
         <div className="flex items-center gap-3">
           <div className="bg-amber-500/20 p-3 rounded-lg text-amber-500">
             <ShieldAlert size={24} />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[#f4f0ea]">التصاريح والشهادات الصحية</h2>
-<div className="bg-amber-900/30 text-amber-500 px-3 py-1 rounded-full text-sm font-bold border border-amber-900/50 mb-4 inline-block">عدد الموظفين: {employees?.length || 0}</div>
-            <p className="text-sm text-[#a8a19b]">يتم عرض أول 50 موظف فقط. استخدم البحث للعثور على البقية.</p>
+            <h2 className="text-xl font-bold text-[#f4f0ea] flex items-center gap-3">
+              التصاريح والشهادات الصحية
+              <span className="bg-amber-900/30 text-amber-500 px-3 py-1 rounded-full text-sm font-bold border border-amber-900/50">
+                {displayedEmployees.length} موظف
+              </span>
+            </h2>
+            <p className="text-sm text-[#a8a19b]">مرتبة حسب الأقرب للانتهاء</p>
           </div>
         </div>
-        
-        <div className="relative w-full md:w-72">
-          <Search className="absolute right-3 top-2.5 text-[#a8a19b]" size={16} />
-          <input 
-            type="text" 
-            placeholder="ابحث بالاسم أو الرقم..." 
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
-            className="w-full bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pr-9 pl-3 text-sm text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] placeholder-[#a8a19b]" 
-          />
+
+        <div className="flex flex-col lg:flex-row gap-3 w-full xl:w-auto">
+          <div className="relative flex-1 lg:w-56">
+            <Search className="absolute right-3 top-2.5 text-[#a8a19b]" size={16} />
+            <input
+              type="text"
+              placeholder="ابحث بالاسم أو الرقم..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pr-9 pl-3 text-sm text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] placeholder-[#a8a19b]"
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative">
+              <Filter className="absolute right-3 top-2.5 text-[#a8a19b]" size={16} />
+              <select
+                value={quickFilter}
+                onChange={handleQuickFilterChange}
+                className="w-full sm:w-auto bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pr-9 pl-3 text-sm text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] appearance-none cursor-pointer"
+              >
+                <option value="30">تنتهي خلال 30 يوم</option>
+                <option value="60">تنتهي خلال 60 يوم</option>
+                <option value="90">تنتهي خلال 90 يوم</option>
+                <option value="all">عرض الكل</option>
+                <option value="custom" disabled>تاريخ مخصص</option>
+              </select>
+            </div>
+
+            <div className="relative">
+              <CalendarDays className="absolute right-3 top-2.5 text-[#a8a19b]" size={16} />
+              <input
+                type="date"
+                value={targetDate}
+                onChange={handleDateChange}
+                className="w-full sm:w-auto bg-[#2a241f] border border-[#524a43] rounded-lg py-2 pr-9 pl-3 text-sm text-[#f4f0ea] focus:outline-none focus:border-[#d4b896] cursor-pointer"
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="grid gap-4">
         {displayedEmployees.length === 0 ? (
-          <div className="text-center text-[#a8a19b] py-12 bg-[#3a332d] rounded-xl border border-[#524a43]">لا توجد تصاريح مطابقة للبحث.</div>
+          <div className="text-center text-[#a8a19b] py-12 bg-[#3a332d] rounded-xl border border-[#524a43]">
+            لا يوجد موظفين تنتهي تصاريحهم قبل هذا التاريخ.
+          </div>
         ) : (
           displayedEmployees.map(emp => {
             const authDays = getDaysLeft(emp.auth_expiry_date);
             const healthDays = getDaysLeft(emp.health_cert_expiry_date);
 
-            const authColor = authDays !== null && authDays <= 7 ? 'text-red-500 bg-red-900/20 border-red-500/30' : 
-                              authDays !== null && authDays <= 30 ? 'text-amber-500 bg-amber-900/20 border-amber-500/30' : 
+            const authColor = authDays !== null && authDays <= 7 ? 'text-red-500 bg-red-900/20 border-red-500/30' :
+                              authDays !== null && authDays <= 30 ? 'text-amber-500 bg-amber-900/20 border-amber-500/30' :
                               'text-emerald-400 bg-emerald-900/20 border-emerald-500/30';
 
-            const healthColor = healthDays !== null && healthDays <= 7 ? 'text-red-500 bg-red-900/20 border-red-500/30' : 
-                                healthDays !== null && healthDays <= 30 ? 'text-amber-500 bg-amber-900/20 border-amber-500/30' : 
+            const healthColor = healthDays !== null && healthDays <= 7 ? 'text-red-500 bg-red-900/20 border-red-500/30' :
+                                healthDays !== null && healthDays <= 30 ? 'text-amber-500 bg-amber-900/20 border-amber-500/30' :
                                 'text-emerald-400 bg-emerald-900/20 border-emerald-500/30';
 
             return (
-              <div key={emp.id} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div key={emp.id} className="bg-[#3a332d] border border-[#524a43] rounded-xl p-5 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors hover:border-[#d4b896]/50">
                 <div>
                   <div className="font-bold text-[#f4f0ea] text-lg">{emp.name}</div>
                   <div className="text-[#a8a19b] text-sm font-mono mt-1">{emp.employee_number} • {emp.rig}</div>
@@ -161,14 +246,14 @@ export default function ExpiringDocsTab({ employees, onRefresh }: { employees: E
               <h3 className="text-lg font-bold text-[#f4f0ea]">تجديد التصاريح</h3>
               <button onClick={() => setEditingEmp(null)} className="text-[#a8a19b] hover:text-[#f4f0ea]"><X size={20} /></button>
             </div>
-            
+
             <div className="text-sm text-zinc-400 mb-4">{editingEmp.name}</div>
 
             <div>
               <label className="block text-sm font-bold text-[#d4b896] mb-1">تاريخ انتهاء التصريح الجديد</label>
               <input type="date" value={editAuthDate} onChange={e => setEditAuthDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
             </div>
-            
+
             <div>
               <label className="block text-sm font-bold text-[#d4b896] mb-1">تاريخ الشهادة الصحية الجديد</label>
               <input type="date" value={editHealthDate} onChange={e => setEditHealthDate(e.target.value)} className="w-full bg-[#3a332d] border border-[#524a43] rounded-lg py-2 px-3 text-[#f4f0ea] focus:border-[#d4b896] focus:outline-none" style={{ colorScheme: 'dark' }} />
